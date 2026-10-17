@@ -1,0 +1,5 @@
+node_modules
+.env
+asbl.db
+public/uploads/*
+!public/uploads/.gitkeep

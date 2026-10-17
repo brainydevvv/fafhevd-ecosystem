@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accueil - Fefhevd</title>
+    
+    <!-- Éléments PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#f0b90b">
+
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        :root { --secondary: #f0b90b; --bg: #0b0e11; --card: #1e2329; --text: #eaecef; --text-muted: #848e9c; --border: #2b313a; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: var(--bg); color: var(--text); display: flex; flex-direction: column; min-height: 100vh; overflow-x: hidden; position: relative; }
+
+        .data-stream-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; overflow: hidden; opacity: 0.2; }
+        .data-particle { position: absolute; background: linear-gradient(180deg, transparent, var(--secondary), transparent); width: 2px; height: 80px; animation: dataFall linear infinite; }
+        @keyframes dataFall { 0% { transform: translateY(-100px); opacity: 0; } 50% { opacity: 1; } 100% { transform: translateY(105vh); opacity: 0; } }
+
+        .floating-donation-badge {
+            position: fixed; bottom: 30px; right: 30px; z-index: 999;
+            background: linear-gradient(135deg, var(--secondary), #d49f07); color: #000;
+            width: 65px; height: 65px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 25px rgba(240, 185, 11, 0.5); cursor: pointer;
+            animation: donationFloat 3s ease-in-out infinite, pulseGlow 2s infinite;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); text-decoration: none;
+        }
+        .floating-donation-badge:hover { transform: scale(1.15) rotate(8deg); }
+        .floating-donation-badge svg { width: 32px; height: 32px; fill: #000; }
+        @keyframes donationFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+        @keyframes pulseGlow { 0% { box-shadow: 0 0 0 0 rgba(240, 185, 11, 0.6); } 70% { box-shadow: 0 0 0 18px rgba(240, 185, 11, 0); } 100% { box-shadow: 0 0 0 0 rgba(240, 185, 11, 0); } }
+
+        nav { background: var(--card); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 1000; }
+        .nav-links-container { display: flex; gap: 20px; list-style: none; align-items: center; }
+        .nav-links-container a { color: var(--text-muted); text-decoration: none; font-size: 14px; transition: color 0.2s; }
+        .nav-links-container a:hover, .nav-links-container a.active { color: var(--secondary); }
+
+        .pro-menu-toggle { display: none; background: #2b313a; color: var(--secondary); border: 1px solid var(--border); padding: 8px 10px; border-radius: 6px; cursor: pointer; align-items: center; justify-content: center; }
+        .pro-menu-toggle svg { width: 22px; height: 22px; fill: currentColor; }
+
+        .nav-actions { display: flex; gap: 12px; align-items: center; margin-left: auto; z-index: 10; }
+        
+        .btn-sub { background: var(--secondary); color: #000; padding: 8px 18px; border-radius: 6px; font-weight: bold; font-size: 13px; border: none; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(240,185,11,0.2); display: inline-block; }
+        .btn-sub:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(240,185,11,0.4); opacity: 0.95; }
+        
+        .post-sub-actions { display: none; gap: 10px; align-items: center; }
+        
+        .icon-btn { 
+            background: #2b313a; color: var(--text); border: 1px solid var(--border); 
+            width: 40px; height: 40px; border-radius: 8px; cursor: pointer; 
+            display: inline-flex; align-items: center; justify-content: center; text-decoration: none;
+            transition: all 0.25s ease; position: relative;
+        }
+        .icon-btn svg { width: 18px; height: 18px; fill: currentColor; }
+        .icon-btn:hover { background: #3a414b; border-color: var(--secondary); color: var(--secondary); transform: translateY(-2px); }
+        .badge-count { position: absolute; top: -5px; right: -5px; background: #e74c3c; color: #fff; font-size: 9px; padding: 2px 5px; border-radius: 10px; font-weight: bold; display: none; }
+
+        .welcome-subscriber { font-size: 12.5px; color: var(--secondary); background: rgba(240,185,11,0.1); padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(240,185,11,0.2); display: none; align-items: center; gap: 6px; }
+
+        .hero { padding: 90px 20px; text-align: center; position: relative; z-index: 1; background: linear-gradient(180deg, rgba(11, 14, 17, 0.88) 0%, rgba(11, 14, 17, 0.96) 100%), url('icons/FHAFEVED COMPANY.jpg'); background-size: cover; background-position: center; border-bottom: 1px solid var(--border); }
+        .hero h1 { color: #fff; font-size: clamp(28px, 4.5vw, 42px); margin-bottom: 15px; font-weight: 800; letter-spacing: -0.5px; }
+        .hero h1 span { color: var(--secondary); }
+        
+        .slogan-box { background: rgba(240, 185, 11, 0.08); border: 1px solid rgba(240, 185, 11, 0.25); display: inline-block; padding: 14px 28px; border-radius: 35px; margin: 15px 0 25px 0; color: var(--secondary); font-weight: 600; font-size: clamp(13px, 2.2vw, 16px); backdrop-filter: blur(5px); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+        .hero-desc { color: var(--text-muted); max-width: 800px; margin: 0 auto 35px auto; font-size: 15px; line-height: 1.8; }
+
+        .content { padding: 40px 20px; max-width: 1000px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 30px; position: relative; z-index: 1; }
+
+        /* CARROUSEL PRINCIPAL (4 ÉTAPES) */
+        .carousel-container { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 35px; position: relative; box-shadow: 0 8px 30px rgba(0,0,0,0.3); text-align: center; overflow: hidden; }
+        .carousel-track { display: flex; transition: transform 0.5s ease-in-out; }
+        .carousel-slide { min-width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; padding: 10px; }
+        .carousel-slide h3 { color: var(--secondary); font-size: 22px; font-weight: 700; }
+        .carousel-slide p { color: var(--text-muted); font-size: 14.5px; line-height: 1.7; max-width: 700px; }
+        
+        .carousel-btn-link { background: var(--secondary); color: #000; padding: 10px 24px; border-radius: 8px; font-weight: bold; text-decoration: none; font-size: 14px; margin-top: 10px; transition: opacity 0.2s; display: inline-block; }
+        .carousel-btn-link:hover { opacity: 0.9; }
+
+        .carousel-dots { display: flex; justify-content: center; gap: 8px; margin-top: 20px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); cursor: pointer; transition: background 0.3s; }
+        .dot.active { background: var(--secondary); }
+
+        /* SECTION TV */
+        .tv-container { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 25px; display: grid; grid-template-columns: 1.5fr 1fr; gap: 25px; align-items: center; box-shadow: 0 8px 30px rgba(0,0,0,0.3); }
+        .tv-screen { background: #000; border-radius: 8px; aspect-ratio: 16/9; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; border: 2px solid #2b313a; overflow: hidden; }
+        .live-badge { position: absolute; top: 12px; left: 12px; background: #e74c3c; color: #fff; font-size: 10px; font-weight: bold; padding: 5px 10px; border-radius: 4px; display: flex; align-items: center; gap: 6px; text-transform: uppercase; z-index: 3; box-shadow: 0 2px 8px rgba(231,76,60,0.4); display: none; }
+        .live-dot { width: 8px; height: 8px; background: #fff; border-radius: 50%; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+        
+        .tv-info h3 { color: var(--secondary); margin-bottom: 12px; font-size: 20px; }
+        .tv-info p { color: var(--text-muted); font-size: 13.5px; line-height: 1.7; margin-bottom: 15px; }
+
+        /* SECTION ACTUALITÉS & ÉVÉNEMENTS */
+        .news-feed-section { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 30px; box-shadow: 0 8px 30px rgba(0,0,0,0.3); }
+        .news-feed-section h3 { color: var(--secondary); margin-bottom: 20px; font-size: 20px; display: flex; align-items: center; gap: 10px; }
+        .news-feed-list { display: flex; flex-direction: column; gap: 20px; }
+        .news-card-item { background: #161a1e; border: 1px solid var(--border); padding: 20px; border-radius: 10px; display: flex; flex-direction: column; gap: 12px; }
+        .news-card-item h4 { color: #fff; font-size: 17px; }
+        .news-card-item p { color: var(--text-muted); font-size: 14px; line-height: 1.6; }
+        .news-media-preview { max-width: 100%; max-height: 400px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); margin-top: 5px; }
+
+        /* CARROUSEL DES AVIS APPROUVÉS */
+        .reviews-section { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 30px; box-shadow: 0 8px 30px rgba(0,0,0,0.3); text-align: center; }
+        .reviews-section h3 { color: var(--secondary); margin-bottom: 20px; font-size: 20px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        
+        .review-carousel-track { display: flex; transition: transform 0.5s ease-in-out; }
+        .review-slide { min-width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 15px; }
+        .review-card { background: #161a1e; border: 1px solid var(--border); padding: 20px; border-radius: 8px; width: 100%; max-width: 600px; text-align: left; display: flex; flex-direction: column; gap: 8px; }
+        .review-header { display: flex; justify-content: space-between; align-items: center; }
+        .review-author { font-weight: bold; color: #fff; font-size: 14px; }
+        .review-stars { color: var(--secondary); font-size: 13px; }
+        .review-comment { color: var(--text-muted); font-size: 13.5px; line-height: 1.5; }
+        
+        .cta-review-btn-container { text-align: center; margin-top: 25px; }
+        .btn-to-review { background: var(--secondary); color: #000; padding: 12px 24px; border-radius: 8px; font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; transition: opacity 0.2s; }
+        .btn-to-review:hover { opacity: 0.9; }
+
+        /* MODALE ABONNEMENT */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(6px); display: none; justify-content: center; align-items: center; z-index: 2000; opacity: 0; transition: opacity 0.3s ease; }
+        .modal-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 35px; width: 100%; max-width: 440px; position: relative; box-shadow: 0 15px 40px rgba(0,0,0,0.6); transform: translateY(20px); transition: transform 0.3s ease; }
+        .modal-overlay.active { opacity: 1; }
+        .modal-overlay.active .modal-card { transform: translateY(0); }
+        
+        .modal-card h3 { color: var(--secondary); margin-bottom: 20px; font-size: 22px; text-align: center; font-weight: 700; }
+        .form-group { margin-bottom: 18px; text-align: left; }
+        .form-group label { display: block; font-size: 12.5px; color: var(--text-muted); margin-bottom: 6px; font-weight: 500; }
+        .form-group input { width: 100%; padding: 12px 14px; background: #0b0e11; border: 1px solid var(--border); border-radius: 8px; color: #fff; font-size: 14px; }
+        .form-group input:focus { border-color: var(--secondary); outline: none; box-shadow: 0 0 0 3px rgba(240,185,11,0.15); }
+        
+        .modal-actions { display: flex; gap: 12px; margin-top: 30px; }
+        .btn-submit { flex: 1; background: var(--secondary); color: #000; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .btn-cancel { flex: 1; background: #2b313a; color: var(--text); border: 1px solid var(--border); padding: 12px; border-radius: 8px; cursor: pointer; }
+        .close-modal { position: absolute; top: 18px; right: 18px; background: none; border: none; color: var(--text-muted); font-size: 22px; cursor: pointer; }
+
+        #successToast {
+            position: fixed; top: 30px; right: 30px; background: linear-gradient(135deg, #2ecc71, #27ae60); color: #fff;
+            padding: 16px 24px; border-radius: 10px; box-shadow: 0 10px 30px rgba(46,204,113,0.4); z-index: 3000;
+            display: none; align-items: center; gap: 12px; font-weight: 600; font-size: 14px;
+        }
+
+        footer { background: var(--card); padding: 25px; text-align: center; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 13px; margin-top: auto; }
+
+        @media (max-width: 768px) {
+            .nav-links-container { position: absolute; top: 100%; left: 0; width: 100%; background: var(--card); flex-direction: column; align-items: flex-start; padding: 20px; gap: 15px; border-bottom: 1px solid var(--border); display: none; }
+            .nav-links-container.mobile-active { display: flex; }
+            .pro-menu-toggle { display: flex; }
+            .tv-container { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="data-stream-bg" id="dataStreamBg"></div>
+
+    <div id="successToast">
+        <svg style="width:22px; height:22px; fill:#fff;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+        <span id="toastText">Action effectuée avec succès.</span>
+    </div>
+
+    <a href="dons.html" class="floating-donation-badge" title="Don Volontaire & Épargne">
+        <svg viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+    </a>
+
+    <!-- MODALE ABONNEMENT -->
+    <div class="modal-overlay" id="subModalOverlay">
+        <div class="modal-card">
+            <button class="close-modal" onclick="toggleSubModal(false)">&times;</button>
+            <h3>Rejoindre l'Écosystème Fefhevd</h3>
+            <form id="subForm" onsubmit="handleSubscriptionSubmit(event)">
+                <div class="form-group">
+                    <label>Nom complet *</label>
+                    <input type="text" id="subNom" required placeholder="Ex: Brainy Kamundala">
+                </div>
+                <div class="form-group">
+                    <label>Adresse Email *</label>
+                    <input type="email" id="subEmail" required placeholder="nom@exemple.com">
+                </div>
+                <div class="form-group">
+                    <label>Numéro de téléphone</label>
+                    <input type="text" id="subTelephone" placeholder="+243 ...">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-cancel" onclick="toggleSubModal(false)">Annuler</button>
+                    <button type="submit" class="btn-submit" id="btnSubmitSub">Valider l'abonnement</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <nav>
+        <button class="pro-menu-toggle" id="proMenuToggle">
+            <svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+        </button>
+
+        <ul class="nav-links-container" id="navLinksContainer">
+            <li><a href="index.html" class="active">Accueil</a></li>
+            <li><a href="apropos.html">À propos</a></li>
+            <li><a href="domaines.html">Domaines & Investissements</a></li>
+            <li><a href="dons.html">Partenariat & Dons</a></li>
+            <li><a href="avis.html">Avis & Témoignages</a></li>
+            <li><a href="contact.html">Contact</a></li>
+        </ul>
+
+        <div class="nav-actions">
+            <button class="btn-sub" id="navSubBtn" onclick="toggleSubModal(true)">S'abonner</button>
+            
+            <div class="welcome-subscriber" id="welcomeSubscriberBadge">
+                <svg style="width:14px; height:14px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                <span id="subscriberNameDisplay">Membre</span>
+            </div>
+
+            <div class="post-sub-actions" id="postSubActionsContainer">
+                <a href="messages.html" id="msgBtn" class="icon-btn" title="Messages" onclick="clearMessageBadge(event)">
+                    <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM20 16H6l-2 2V4h16v12z"/></svg>
+                    <span class="badge-count" id="msgBadge">0</span>
+                </a>
+                
+                <a href="notifications.html" id="notifBtn" class="icon-btn" title="Notifications">
+                    <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.68v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg>
+                    <span class="badge-count" id="notifBadge">0</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- SECTION HÉRO -->
+    <section class="hero">
+        <h1>Bâtissons l'Avenir <span>Ensemble</span></h1>
+        <div class="slogan-box">"Nous, c'est la solution complète de vivre mieux, paraître mieux et se sentir mieux."</div>
+        <p class="hero-desc">
+            Structure socio-éco pionnière ancrée à Bukavu, au cœur du Sud-Kivu en RDC. Nous unissons innovation technologique, initiatives durables et développement communautaire.
+        </p>
+    </section>
+
+    <div class="content">
+        <!-- 1. CARROUSEL AUTOMATIQUE DE PRÉSENTATION (4 ÉTAPES) -->
+        <div class="carousel-container">
+            <div class="carousel-track" id="mainCarouselTrack">
+                <div class="carousel-slide">
+                    <h3>À propos de Fefhevd</h3>
+                    <p>Découvrez notre vision, notre mission d'autonomisation communautaire et notre ancrage profond à Bukavu pour bâtir un développement durable et inclusif.</p>
+                    <a href="apropos.html" class="carousel-btn-link">En savoir plus ➔</a>
+                </div>
+                <div class="carousel-slide">
+                    <h3>Domaines d'intervention</h3>
+                    <p>Explorez nos secteurs d'action prioritaires : innovation technologique, entrepreneuriat local, initiatives vertes et accompagnement de la jeunesse.</p>
+                    <a href="domaines.html" class="carousel-btn-link">En savoir plus ➔</a>
+                </div>
+                <div class="carousel-slide">
+                    <h3>Partenariat Stratégique</h3>
+                    <p>Rejoignez notre réseau de co-acteurs et d'institutions engagées pour mutualiser nos forces et dynamiser l'économie locale de notre région.</p>
+                    <a href="dons.html" class="carousel-btn-link">En savoir plus ➔</a>
+                </div>
+                <div class="carousel-slide">
+                    <h3>Campagnes & Dons</h3>
+                    <p>Soutenez concrètement nos projets d'utilité publique et de sécurité communautaire à travers notre parcours de contribution sécurisé.</p>
+                    <a href="dons.html" class="carousel-btn-link">En savoir plus ➔</a>
+                </div>
+            </div>
+            <div class="carousel-dots" id="mainCarouselDots">
+                <span class="dot active" onclick="setMainSlide(0)"></span>
+                <span class="dot" onclick="setMainSlide(1)"></span>
+                <span class="dot" onclick="setMainSlide(2)"></span>
+                <span class="dot" onclick="setMainSlide(3)"></span>
+            </div>
+        </div>
+
+        <!-- 2. SECTION TV DIRECT -->
+        <div class="tv-container">
+            <div class="tv-screen" id="tvScreenContainer">
+                <div class="live-badge" id="tvLiveBadgeElement"><div class="live-dot"></div> <span id="tvStatusText">En Direct</span></div>
+                <div class="tv-placeholder" id="tvPlayerWrapper" style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; text-align:center; padding:15px;">
+                    <p style="font-size: 14px; color: var(--text-muted);" id="tvTitleLoad">Connexion au serveur de diffusion...</p>
+                </div>
+            </div>
+            <div class="tv-info">
+                <h3 id="tvHeaderTitle">📺 Fefhevd TV Direct</h3>
+                <p id="tvHeaderDesc">Le signal du studio s'actualise automatiquement en direct.</p>
+                <div class="mini-tv-status" id="tvStateIndicator" style="font-weight: bold; font-size: 13px;">Vérification du signal...</div>
+            </div>
+        </div>
+
+        <!-- 3. SECTION ACTUALITÉS & ÉVÉNEMENTS -->
+        <div class="news-feed-section">
+            <h3>📰 Dernières Actualités & Événements</h3>
+            <p style="color: var(--text-muted); font-size: 13.5px; margin-bottom: 20px;">Restez informés de toutes nos activités et annonces officielles en temps réel.</p>
+            <div class="news-feed-list" id="newsFeedContainer">
+                <p style="color: var(--text-muted); font-size: 13px;">Chargement des actualités...</p>
+            </div>
+        </div>
+
+        <!-- 4. CARROUSEL DES AVIS APPROUVÉS -->
+        <div class="reviews-section">
+            <h3>⭐ Témoignages & Avis de la Communauté</h3>
+            <p style="color: var(--text-muted); font-size: 13.5px; margin-bottom: 20px;">Ce que pensent nos membres et partenaires de nos actions sur le terrain.</p>
+            
+            <div style="overflow: hidden; width: 100%;">
+                <div class="review-carousel-track" id="reviewCarouselTrack">
+                    <div class="review-slide">
+                        <div class="review-card">
+                            <p class="review-comment" style="text-align: center; color: var(--text-muted);">Chargement des témoignages...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. BOUTON DE REDIRECTION VERS LA PAGE D'AVIS (avis.html) -->
+            <div class="cta-review-btn-container">
+                <a href="avis.html" class="btn-to-review">
+                    ✍️ Partager votre avis ou commentaire
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. FOOTER -->
+    <footer>&copy; 2026 Fefhevd - Tous droits réservés</footer>
+
+    <script>
+        const socket = io();
+
+        const bgContainer = document.getElementById('dataStreamBg');
+        for (let i = 0; i < 15; i++) {
+            const p = document.createElement('div');
+            p.className = 'data-particle';
+            p.style.left = `${Math.random() * 100}%`;
+            p.style.animationDuration = `${3 + Math.random() * 4}s`;
+            p.style.animationDelay = `${Math.random() * 3}s`;
+            bgContainer.appendChild(p);
+        }
+
+        document.getElementById('proMenuToggle').addEventListener('click', () => {
+            document.getElementById('navLinksContainer').classList.toggle('mobile-active');
+        });
+
+        function toggleSubModal(show) {
+            const modal = document.getElementById('subModalOverlay');
+            if (show) {
+                modal.style.display = 'flex';
+                setTimeout(() => modal.classList.add('active'), 10);
+            } else {
+                modal.classList.remove('active');
+                setTimeout(() => modal.style.display = 'none', 300);
+            }
+        }
+
+        function showSuccessToast(message) {
+            const toast = document.getElementById('successToast');
+            document.getElementById('toastText').innerText = message;
+            toast.style.display = 'flex';
+            setTimeout(() => { toast.style.display = 'none'; }, 4000);
+        }
+
+        function checkLocalSubscription() {
+            const isSubscribed = localStorage.getItem('fefhevd_subscribed');
+            const savedNom = localStorage.getItem('fefhevd_nom');
+
+            if (isSubscribed === 'true') {
+                document.getElementById('navSubBtn').style.display = 'none';
+                document.getElementById('postSubActionsContainer').style.display = 'flex';
+                if (savedNom) {
+                    document.getElementById('subscriberNameDisplay').innerText = savedNom;
+                    document.getElementById('welcomeSubscriberBadge').style.display = 'inline-flex';
+                }
+            } else {
+                document.getElementById('navSubBtn').style.display = 'inline-block';
+                document.getElementById('postSubActionsContainer').style.display = 'none';
+                document.getElementById('welcomeSubscriberBadge').style.display = 'none';
+            }
+        }
+
+        async function handleSubscriptionSubmit(event) {
+            event.preventDefault();
+            const nom = document.getElementById('subNom').value;
+            const email = document.getElementById('subEmail').value;
+            const telephone = document.getElementById('subTelephone').value;
+            const btnSubmit = document.getElementById('btnSubmitSub');
+
+            btnSubmit.innerHTML = '<span class="spinner"></span> Enregistrement...';
+            btnSubmit.disabled = true;
+
+            try {
+                const response = await fetch('/api/subscribe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nom, email, telephone })
+                });
+                const result = await response.json();
+                
+                if (response.ok) {
+                    localStorage.setItem('fefhevd_subscribed', 'true');
+                    localStorage.setItem('fefhevd_nom', nom);
+                    localStorage.setItem('fefhevd_email', email);
+
+                    toggleSubModal(false);
+                    document.getElementById('subForm').reset();
+                    
+                    checkLocalSubscription();
+                    showSuccessToast(`Heureux de vous revoir, ${nom} ! Abonnement enregistré.`);
+                    fetchUserCounts();
+                } else {
+                    alert("Erreur : " + (result.error || "Échec de l'enregistrement"));
+                }
+            } catch (err) {
+                alert("Impossible de joindre le serveur.");
+            } finally {
+                btnSubmit.innerHTML = "Valider l'abonnement";
+                btnSubmit.disabled = false;
+            }
+        }
+
+        async function fetchUserCounts() {
+            try {
+                const res = await fetch('/api/user/counts');
+                const data = await res.json();
+                if (data.messagesCount > 0) {
+                    const badge = document.getElementById('msgBadge');
+                    badge.innerText = data.messagesCount;
+                    badge.style.display = 'inline-block';
+                }
+            } catch (e) {
+                console.error("Erreur compteurs", e);
+            }
+        }
+
+        function clearMessageBadge(event) {
+            const badge = document.getElementById('msgBadge');
+            badge.innerText = '0';
+            badge.style.display = 'none';
+        }
+
+        /* CARROUSEL PRINCIPAL */
+        let currentMainSlide = 0;
+        const mainTrack = document.getElementById('mainCarouselTrack');
+        const mainDots = document.querySelectorAll('#mainCarouselDots .dot');
+        const totalMainSlides = mainDots.length;
+
+        function setMainSlide(index) {
+            currentMainSlide = index;
+            mainTrack.style.transform = `translateX(-${currentMainSlide * 100}%)`;
+            mainDots.forEach((d, i) => {
+                d.classList.toggle('active', i === currentMainSlide);
+            });
+        }
+
+        setInterval(() => {
+            currentMainSlide = (currentMainSlide + 1) % totalMainSlides;
+            setMainSlide(currentMainSlide);
+        }, 5000);
+
+        /* CHARGEMENT DU FLUX D'ACTUALITÉS & ÉVÉNEMENTS */
+        async function loadNewsFeed() {
+            try {
+                const res = await fetch('/api/news');
+                const posts = await res.json();
+                const container = document.getElementById('newsFeedContainer');
+
+                if (!posts || posts.length === 0) {
+                    container.innerHTML = `<p style="color: var(--text-muted); font-size: 13px;">Aucune actualité publiée pour le moment.</p>`;
+                    return;
+                }
+
+                container.innerHTML = posts.map(p => {
+                    let mediaHtml = '';
+                    if (p.image) {
+                        if (p.image.match(/\.(mp4|webm|ogg)$/i)) {
+                            mediaHtml = `<video src="${p.image}" controls class="news-media-preview"></video>`;
+                        } else {
+                            mediaHtml = `<img src="${p.image}" alt="Média" class="news-media-preview">`;
+                        }
+                    }
+
+                    return `
+                        <div class="news-card-item">
+                            <h4>${p.title}</h4>
+                            <p>${p.content}</p>
+                            ${mediaHtml}
+                            <span style="font-size: 11.5px; color: var(--secondary); margin-top: 5px;">Publié le ${new Date(p.created_at).toLocaleDateString()}</span>
+                        </div>
+                    `;
+                }).join('');
+            } catch (e) {
+                console.error("Erreur chargement news", e);
+            }
+        }
+
+        /* CARROUSEL DES AVIS APPROUVÉS */
+        let reviewSlidesCount = 1;
+        let currentReviewSlide = 0;
+
+        async function loadApprovedReviewsCarousel() {
+            try {
+                const res = await fetch('/api/commentaires/approuves');
+                const approved = await res.json();
+                const track = document.getElementById('reviewCarouselTrack');
+
+                if (!approved || approved.length === 0) {
+                    track.innerHTML = `
+                        <div class="review-slide">
+                            <div class="review-card">
+                                <p class="review-comment" style="text-align: center; color: var(--text-muted);">Aucun avis approuvé pour le moment. Soyez le premier à participer !</p>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                track.innerHTML = approved.map(rev => {
+                    const starsCount = parseInt(rev.note) || 5;
+                    const starsStr = '⭐'.repeat(starsCount);
+                    const authorName = rev.auteur || rev.nom || 'Membre';
+                    const textContent = rev.contenu || rev.commentaire || '';
+                    return `
+                        <div class="review-slide">
+                            <div class="review-card">
+                                <div class="review-header">
+                                    <span class="review-author">${authorName}</span>
+                                    <span class="review-stars">${starsStr}</span>
+                                </div>
+                                <p class="review-comment">"${textContent}"</p>
+                                <span style="font-size: 11px; color: var(--text-muted); align-self: flex-end; margin-top: 5px;">${new Date(rev.created_at).toLocaleDateString()}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                reviewSlidesCount = approved.length;
+
+                if (reviewSlidesCount > 1) {
+                    setInterval(() => {
+                        currentReviewSlide = (currentReviewSlide + 1) % reviewSlidesCount;
+                        track.style.transform = `translateX(-${currentReviewSlide * 100}%)`;
+                    }, 4000);
+                }
+
+            } catch (e) {
+                console.error("Erreur chargement carrousel avis", e);
+            }
+        }
+
+        /* STATUT TV DIRECT */
+        async function checkTvLiveStatus() {
+            try {
+                const res = await fetch('/api/tv/status');
+                const tvData = await res.json();
+                
+                const playerWrapper = document.getElementById('tvPlayerWrapper');
+                const liveBadge = document.getElementById('tvLiveBadgeElement');
+
+                if (tvData.isLive) {
+                    liveBadge.style.display = 'flex';
+                    document.getElementById('tvStateIndicator').innerText = "🟢 Diffusion active";
+                    document.getElementById('tvStateIndicator').style.color = "#2ecc71";
+                    document.getElementById('tvHeaderTitle').innerText = tvData.title;
+                    document.getElementById('tvHeaderDesc').innerText = tvData.description;
+                    
+                    if (tvData.streamUrl === 'webcam-live-stream') {
+                        playerWrapper.innerHTML = `
+                            <div style="color: #2ecc71; font-weight: bold; display: flex; flex-direction: column; align-items: center; gap: 10px;">
+                                <div class="live-dot" style="width: 14px; height: 14px;"></div>
+                                Studio Web Caméra en Direct Actif
+                            </div>
+                        `;
+                    } else if (tvData.streamUrl) {
+                        playerWrapper.innerHTML = `
+                            <iframe src="${tvData.streamUrl}" style="width:100%; height:100%; border:none;" allowfullscreen></iframe>
+                        `;
+                    }
+                } else {
+                    liveBadge.style.display = 'none';
+                    document.getElementById('tvStateIndicator').innerText = "⚪ Hors Ligne";
+                    document.getElementById('tvStateIndicator').style.color = "#848e9c";
+                    document.getElementById('tvHeaderTitle').innerText = "📺 Fefhevd TV Direct";
+                    document.getElementById('tvHeaderDesc').innerText = "Aucun direct en cours pour le moment. Consultez le programme ou patientez.";
+                    playerWrapper.innerHTML = `<p style="font-size: 14px; color: var(--text-muted);" id="tvTitleLoad">Aucun direct en cours.</p>`;
+                }
+            } catch (e) {
+                console.error("Erreur flux TV", e);
+            }
+        }
+
+        socket.on('tv_signal_updated', (data) => {
+            checkTvLiveStatus();
+        });
+
+        socket.on('new_post_published', (newPost) => {
+            loadNewsFeed();
+        });
+
+        window.onload = () => {
+            checkLocalSubscription();
+            checkTvLiveStatus();
+            fetchUserCounts();
+            loadNewsFeed();
+            loadApprovedReviewsCarousel();
+        };
+
+        // Enregistrement du Service Worker pour la PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then((reg) => { console.log('Service Worker enregistré:', reg.scope); })
+                    .catch((err) => { console.log('Erreur enregistrement SW:', err); });
+            });
+        }
+    </script>
+</body>
+</html>

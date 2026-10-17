@@ -1,0 +1,15 @@
+{
+  "name": "FAFHEVD - Écosystème Global",
+  "short_name": "FAFHEVD",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#0b0e11",
+  "theme_color": "#f0b90b",
+  "icons": [
+    {
+      "src": "/icons/FHAFEVED COMPANY.jpg",
+      "sizes": "192x192 512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}

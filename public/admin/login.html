@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Connexion Admin - FAFHEVD</title>
+    <style>
+        body { background: #0b0e11; color: #eaecef; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif; margin: 0; }
+        .login-card { background: #1e2329; padding: 40px; border-radius: 12px; width: 100%; max-width: 400px; border: 1px solid #2b313a; }
+        .login-card h2 { color: #f0b90b; text-align: center; margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 13px; color: #848e9c; margin-bottom: 5px; }
+        .form-group input { width: 100%; padding: 11px; background: #0b0e11; border: 1px solid #2b313a; color: white; border-radius: 6px; }
+        .btn { background: #f0b90b; color: #0b0e11; border: none; padding: 12px; width: 100%; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .btn.loading { opacity: 0.7; pointer-events: none; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <h2>🔐 Admin FAFHEVD</h2>
+        <div id="login-error" style="color: #ef4444; font-size: 13px; margin-bottom: 10px; text-align: center;"></div>
+        <form id="login-form">
+            <div class="form-group"><label>ID Admin ou Téléphone</label><input type="text" id="login-id" required></div>
+            <div class="form-group"><label>Mot de passe</label><input type="password" id="login-pass" required></div>
+            <button type="submit" class="btn" id="login-btn">Se connecter</button>
+        </form>
+    </div>
+    <script>
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('login-btn');
+            btn.classList.add('loading');
+            try {
+                const res = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ identifier: document.getElementById('login-id').value, password: document.getElementById('login-pass').value })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    localStorage.setItem('adminUser', JSON.stringify(data.admin));
+                    window.location.href = 'dashboard.html';
+                } else {
+                    document.getElementById('login-error').innerText = data.error;
+                }
+            } catch { document.getElementById('login-error').innerText = "Erreur réseau."; }
+            finally { btn.classList.remove('loading'); }
+        });
+    </script>
+</body>
+</html>

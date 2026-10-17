@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soutenir nos Campagnes - FAFHEVD</title>
+    
+    <!-- Éléments PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#f0b90b">
+
+    <style>
+        :root { --secondary: #f0b90b; --bg: #0b0e11; --card: #1e2329; --text: #eaecef; --text-muted: #848e9c; --border: #2b313a; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: var(--bg); color: var(--text); display: flex; flex-direction: column; min-height: 100vh; }
+        
+        nav { background: var(--card); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 1000; }
+        .logo { font-weight: bold; color: var(--secondary); text-decoration: none; font-size: 16px; }
+        .nav-links { display: flex; gap: 20px; list-style: none; align-items: center; }
+        .nav-links a { color: var(--text-muted); text-decoration: none; font-size: 14px; transition: color 0.2s; }
+        .nav-links a:hover, .nav-links a.active { color: var(--secondary); }
+
+        .pro-menu-toggle { display: none; background: #2b313a; color: var(--secondary); border: 1px solid var(--border); padding: 8px 10px; border-radius: 6px; cursor: pointer; align-items: center; justify-content: center; }
+        .pro-menu-toggle svg { width: 22px; height: 22px; fill: currentColor; }
+
+        .hero-don { padding: 50px 20px 30px 20px; text-align: center; border-bottom: 1px solid var(--border); background: linear-gradient(180deg, rgba(30, 35, 41, 0.5) 0%, transparent 100%); }
+        .hero-don h1 { color: #fff; font-size: 32px; margin-bottom: 10px; font-weight: 800; }
+        .hero-don h1 span { color: var(--secondary); }
+        .hero-don p { color: var(--text-muted); max-width: 650px; margin: 0 auto; font-size: 14.5px; line-height: 1.6; }
+
+        .content { padding: 40px 20px; max-width: 700px; margin: 0 auto; flex-grow: 1; width: 100%; }
+
+        .stepper { display: flex; justify-content: space-between; margin-bottom: 30px; position: relative; }
+        .stepper::before { content: ''; position: absolute; top: 18px; left: 0; width: 100%; height: 2px; background: var(--border); z-index: 0; }
+        .step-item { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+        .step-number { width: 36px; height: 36px; border-radius: 50%; background: #161a1e; border: 2px solid var(--border); color: var(--text-muted); font-weight: bold; display: flex; align-items: center; justify-content: center; font-size: 13px; transition: all 0.3s; }
+        .step-item.active .step-number { background: var(--secondary); border-color: var(--secondary); color: #0b0e11; box-shadow: 0 0 12px rgba(240, 185, 11, 0.4); }
+        .step-item.completed .step-number { background: #2ecc71; border-color: #2ecc71; color: #fff; }
+        .step-label { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
+        .step-item.active .step-label { color: var(--secondary); }
+
+        .card { background: var(--card); padding: 35px; border-radius: 14px; border: 1px solid var(--border); box-shadow: 0 8px 30px rgba(0,0,0,0.4); }
+        .step-content { display: none; }
+        .step-content.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        .step-title { color: var(--secondary); font-size: 18px; margin-bottom: 20px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+
+        .grid-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+        .option-btn { background: #161a1e; border: 1px solid var(--border); color: #fff; padding: 14px; border-radius: 8px; font-weight: bold; cursor: pointer; text-align: center; transition: all 0.2s; }
+        .option-btn:hover, .option-btn.selected { border-color: var(--secondary); background: rgba(240, 185, 11, 0.1); color: var(--secondary); }
+
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-size: 12.5px; color: var(--text-muted); margin-bottom: 8px; font-weight: 500; }
+        .form-group input, .form-group select { width: 100%; padding: 12px 14px; background: #0b0e11; border: 1px solid var(--border); color: white; border-radius: 8px; font-size: 14px; }
+        .form-group input:focus, .form-group select:focus { border-color: var(--secondary); outline: none; }
+
+        .payment-methods { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px; }
+        .pm-card { background: #161a1e; border: 1px solid var(--border); padding: 16px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 12px; transition: all 0.2s; }
+        .pm-card:hover, .pm-card.selected { border-color: var(--secondary); background: rgba(240, 185, 11, 0.1); }
+        .pm-card span { font-size: 13.5px; font-weight: bold; color: #fff; }
+
+        .btn-nav-group { display: flex; gap: 12px; margin-top: 25px; }
+        .btn { padding: 12px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; border: none; font-size: 14px; transition: opacity 0.2s; text-decoration: none; text-align: center; display: inline-flex; align-items: center; justify-content: center; gap: 8px;}
+        .btn-primary { background: var(--secondary); color: #0b0e11; flex: 1; }
+        .btn-secondary { background: #2b313a; color: var(--text); }
+        .btn-whatsapp { background: #25d366; color: #fff; flex: 1; font-weight: bold; }
+        .btn:hover { opacity: 0.9; }
+
+        .instruction-box { background: #161a1e; border: 1px solid var(--secondary); padding: 18px; border-radius: 10px; margin-bottom: 20px; }
+        .instruction-box h4 { color: var(--secondary); margin-bottom: 8px; font-size: 15px; }
+        .instruction-box p { font-size: 13.5px; color: var(--text-muted); line-height: 1.6; }
+
+        /* Popup Modale de Succès */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(6px); display: none; justify-content: center; align-items: center; z-index: 2000; opacity: 0; transition: opacity 0.3s ease; }
+        .modal-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 35px; width: 100%; max-width: 440px; position: relative; box-shadow: 0 15px 40px rgba(0,0,0,0.6); text-align: center; transform: translateY(20px); transition: transform 0.3s ease; }
+        .modal-overlay.active { opacity: 1; }
+        .modal-overlay.active .modal-card { transform: translateY(0); }
+        .modal-card h3 { color: var(--secondary); margin-bottom: 15px; font-size: 22px; font-weight: 700; }
+        .modal-card p { color: var(--text-muted); font-size: 14px; line-height: 1.6; margin-bottom: 25px; }
+
+        footer { background: var(--card); padding: 25px; text-align: center; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 13px; margin-top: auto; }
+
+        @media (max-width: 768px) {
+            .nav-links { position: absolute; top: 100%; left: 0; width: 100%; background: var(--card); flex-direction: column; align-items: flex-start; padding: 20px; gap: 15px; border-bottom: 1px solid var(--border); display: none; }
+            .nav-links.mobile-active { display: flex; }
+            .pro-menu-toggle { display: flex; }
+            .grid-options, .payment-methods { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- POPUP MODALE DE SUCCÈS -->
+    <div class="modal-overlay" id="successModalOverlay">
+        <div class="modal-card">
+            <div style="width: 60px; height: 60px; background: rgba(46,204,113,0.15); color: #2ecc71; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; font-size: 28px;">✔</div>
+            <h3>Don enregistré avec succès !</h3>
+            <p>Votre promesse de don a bien été enregistrée dans notre système. Pour valider définitivement votre transaction Mobile Money, veuillez envoyer la confirmation sur notre canal officiel.</p>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <a id="modal-whatsapp-btn" href="#" target="_blank" class="btn btn-whatsapp" style="width:100%;">
+                    💬 Envoyer la confirmation sur WhatsApp
+                </a>
+                <button type="button" class="btn btn-secondary" onclick="closeModalAndReset()" style="width:100%;">Fermer / Nouveau don</button>
+            </div>
+        </div>
+    </div>
+
+    <nav>
+        <a href="index.html" class="logo">⚡ FAFHEVD</a>
+        <button class="pro-menu-toggle" id="proMenuToggle">
+            <svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+        </button>
+        <ul class="nav-links" id="navLinksContainer">
+            <li><a href="index.html">Accueil</a></li>
+            <li><a href="apropos.html">À propos</a></li>
+            <li><a href="domaines.html">Domaines d'intervention</a></li>
+            <li><a href="dons.html" class="active">Dons & Partenariat</a></li>
+        </ul>
+    </nav>
+
+    <div class="hero-don">
+        <h1>Soutenir nos <span>Actions Communautaires</span></h1>
+        <p>Chaque contribution permet de financer nos projets de développement local, d'autonomisation et d'innovation à Bukavu.</p>
+    </div>
+
+    <div class="content">
+        <div class="stepper">
+            <div class="step-item active" id="step-indicator-1">
+                <div class="step-number">1</div>
+                <div class="step-label">Cause</div>
+            </div>
+            <div class="step-item" id="step-indicator-2">
+                <div class="step-number">2</div>
+                <div class="step-label">Montant</div>
+            </div>
+            <div class="step-item" id="step-indicator-3">
+                <div class="step-number">3</div>
+                <div class="step-label">Paiement</div>
+            </div>
+            <div class="step-item" id="step-indicator-4">
+                <div class="step-number">4</div>
+                <div class="step-label">Validation</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <form id="don-form">
+                <!-- ÉTAPE 1 -->
+                <div class="step-content active" id="step-1">
+                    <div class="step-title">🎯 Étape 1 : Choisir la cause à soutenir</div>
+                    <div class="form-group">
+                        <label>Sélectionnez une campagne ou un fonds *</label>
+                        <select id="campagne-select">
+                            <option value="Fonds Général FAFHEVD">Fonds Général - Soutien aux actions prioritaires</option>
+                            <option value="Électrification Panzi Lumière">Projet Panzi Lumière & Sécurité</option>
+                            <option value="Autonomisation & Jeunesse">Formation & Équipement des Jeunes</option>
+                            <option value="Développement Agricole">Soutien aux Groupements Agricoles</option>
+                        </select>
+                    </div>
+                    <div class="btn-nav-group">
+                        <button type="button" class="btn btn-primary" onclick="nextStep(2)">Continuer vers le montant ➔</button>
+                    </div>
+                </div>
+
+                <!-- ÉTAPE 2 -->
+                <div class="step-content" id="step-2">
+                    <div class="step-title">💵 Étape 2 : Définir le montant de votre don</div>
+                    <div class="form-group">
+                        <label>Montants suggérés</label>
+                        <div class="grid-options">
+                            <div class="option-btn" onclick="selectAmount(10, this)">10</div>
+                            <div class="option-btn selected" onclick="selectAmount(25, this)">25</div>
+                            <div class="option-btn" onclick="selectAmount(50, this)">50</div>
+                            <div class="option-btn" onclick="selectAmount(100, this)">100</div>
+                            <div class="option-btn" onclick="selectAmount(250, this)">250</div>
+                            <div class="option-btn" onclick="selectAmount(500, this)">500</div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Ou saisissez un montant personnalisé *</label>
+                        <input type="number" id="montant-custom" value="25" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Devise</label>
+                        <select id="devise-select">
+                            <option value="USD">USD ($)</option>
+                            <option value="CDF">CDF (Franc Congolais)</option>
+                        </select>
+                    </div>
+                    <div class="btn-nav-group">
+                        <button type="button" class="btn btn-secondary" onclick="nextStep(1)">⬅ Retour</button>
+                        <button type="button" class="btn btn-primary" onclick="nextStep(3)">Mode de paiement ➔</button>
+                    </div>
+                </div>
+
+                <!-- ÉTAPE 3 -->
+                <div class="step-content" id="step-3">
+                    <div class="step-title">💳 Étape 3 : Choisir le moyen de paiement</div>
+                    <div class="payment-methods">
+                        <div class="pm-card selected" onclick="selectPayment('Mobile Money', this)">
+                            📱 <span>Mobile Money (RDC)</span>
+                        </div>
+                        <div class="pm-card" onclick="selectPayment('Crypto-monnaie', this)">
+                            🌐 <span>Crypto-monnaie</span>
+                        </div>
+                    </div>
+                    <input type="hidden" id="paiement-val" value="Mobile Money">
+                    <div class="btn-nav-group">
+                        <button type="button" class="btn btn-secondary" onclick="nextStep(2)">⬅ Retour</button>
+                        <button type="button" class="btn btn-primary" onclick="nextStep(4)">Informations & Instructions ➔</button>
+                    </div>
+                </div>
+
+                <!-- ÉTAPE 4 -->
+                <div class="step-content" id="step-4">
+                    <div class="step-title">👤 Étape 4 : Coordonnées & Confirmation</div>
+                    
+                    <div class="form-group">
+                        <label>Nom ou Pseudo (Laissez vide pour rester anonyme)</label>
+                        <input type="text" id="donateur-name" placeholder="Ex: Jean-Paul B.">
+                    </div>
+
+                    <div class="instruction-box" id="mobile-money-instructions">
+                        <h4>📱 Instructions de Transfert Mobile Money</h4>
+                        <p>Veuillez envoyer votre montant sur le numéro officiel FAFHEVD :<br>
+                        <strong style="color: #fff; font-size: 16px;">+243 975 483 774</strong> (M-Pesa / Orange Money / Airtel)</p>
+                    </div>
+
+                    <div style="background: #161a1e; padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px; font-size: 13px; line-height: 1.6;">
+                        <strong>Récapitulatif :</strong><br>
+                        • Cause : <span id="summary-cause" style="color:var(--secondary);">Fonds Général</span><br>
+                        • Montant : <span id="summary-montant" style="color:var(--secondary);">25 USD</span><br>
+                        • Mode : <span id="summary-mode" style="color:var(--secondary);">Mobile Money</span>
+                    </div>
+
+                    <div class="btn-nav-group">
+                        <button type="button" class="btn btn-secondary" onclick="nextStep(3)">⬅ Retour</button>
+                        <button type="submit" class="btn btn-primary" id="btn-submit-don">Valider et enregistrer le don</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <footer>&copy; 2026 FAFHEVD - Tous droits réservés</footer>
+
+    <script>
+        let currentStep = 1;
+
+        // Gestion du menu hamburger pour mobile
+        document.getElementById('proMenuToggle').addEventListener('click', () => {
+            document.getElementById('navLinksContainer').classList.toggle('mobile-active');
+        });
+
+        function nextStep(step) {
+            document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.step-item').forEach((el, idx) => {
+                el.classList.remove('active');
+                if (idx + 1 < step) el.classList.add('completed');
+                else el.classList.remove('completed');
+                if (idx + 1 === step) el.classList.add('active');
+            });
+
+            document.getElementById(`step-${step}`).classList.add('active');
+            currentStep = step;
+
+            if (step === 4) {
+                const cause = document.getElementById('campagne-select').value;
+                const montant = document.getElementById('montant-custom').value;
+                const devise = document.getElementById('devise-select').value;
+                const mode = document.getElementById('paiement-val').value;
+
+                document.getElementById('summary-cause').innerText = cause;
+                document.getElementById('summary-montant').innerText = `${montant} ${devise}`;
+                document.getElementById('summary-mode').innerText = mode;
+
+                const instrBox = document.getElementById('mobile-money-instructions');
+                if (mode.includes('Mobile Money')) {
+                    instrBox.style.display = 'block';
+                } else {
+                    instrBox.style.display = 'none';
+                }
+            }
+        }
+
+        function selectAmount(val, btn) {
+            document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            document.getElementById('montant-custom').value = val;
+        }
+
+        function selectPayment(val, card) {
+            document.querySelectorAll('.pm-card').formatClasses?.();
+            document.querySelectorAll('.pm-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            document.getElementById('paiement-val').value = val;
+        }
+
+        function openSuccessModal(whatsappUrl) {
+            const modal = document.getElementById('successModalOverlay');
+            document.getElementById('modal-whatsapp-btn').href = whatsappUrl;
+            modal.style.display = 'flex';
+            setTimeout(() => modal.classList.add('active'), 10);
+        }
+
+        function closeModalAndReset() {
+            const modal = document.getElementById('successModalOverlay');
+            modal.classList.remove('active');
+            setTimeout(() => {
+                modal.style.display = 'none';
+                document.getElementById('don-form').reset();
+                nextStep(1);
+            }, 300);
+        }
+
+        document.getElementById('don-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btnSubmit = document.getElementById('btn-submit-don');
+            btnSubmit.innerText = "Enregistrement...";
+            btnSubmit.disabled = true;
+
+            const donateur = document.getElementById('donateur-name').value || 'Anonyme';
+            const montant = parseFloat(document.getElementById('montant-custom').value);
+            const devise = document.getElementById('devise-select').value;
+            const campagne = document.getElementById('campagne-select').value;
+            const moyen_paiement = document.getElementById('paiement-val').value;
+
+            const payload = { donateur, montant, devise, campagne, moyen_paiement };
+
+            try {
+                const res = await fetch('/api/dons', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    const message = encodeURIComponent(`Bonjour FAFHEVD, je confirme mon don de ${montant} ${devise} pour la campagne "${campagne}" via ${moyen_paiement}. Donateur : ${donateur}.`);
+                    const whatsappUrl = `https://wa.me/243975483774?text=${message}`;
+                    
+                    openSuccessModal(whatsappUrl);
+                } else {
+                    alert("Erreur : " + (data.error || "Échec de l'enregistrement du don"));
+                }
+            } catch (err) {
+                alert("Impossible de joindre le serveur. Vérifiez votre connexion.");
+            } finally {
+                btnSubmit.innerText = "Valider et enregistrer le don";
+                btnSubmit.disabled = false;
+            }
+        });
+
+        // Enregistrement du Service Worker pour la PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then((reg) => { console.log('Service Worker enregistré:', reg.scope); })
+                    .catch((err) => { console.log('Erreur enregistrement SW:', err); });
+            });
+        }
+    </script>
+</body>
+</html>

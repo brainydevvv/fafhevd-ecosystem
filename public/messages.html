@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messages - Fefhevd</title>
+    <!-- Inclusion de Socket.io client -->
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        :root { --secondary: #f0b90b; --bg: #0b0e11; --card: #1e2329; --text: #eaecef; --text-muted: #848e9c; --border: #2b313a; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: var(--bg); color: var(--text); display: flex; flex-direction: column; min-height: 100vh; overflow-x: hidden; position: relative; }
+
+        .data-stream-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; overflow: hidden; opacity: 0.2; }
+        .data-particle { position: absolute; background: linear-gradient(180deg, transparent, var(--secondary), transparent); width: 2px; height: 80px; animation: dataFall linear infinite; }
+        @keyframes dataFall { 0% { transform: translateY(-100px); opacity: 0; } 50% { opacity: 1; } 100% { transform: translateY(105vh); opacity: 0; } }
+
+        /* Navbar rigoureusement identique à la page d'accueil */
+        nav { background: var(--card); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 1000; }
+        .nav-links-container { display: flex; gap: 20px; list-style: none; align-items: center; }
+        .nav-links-container a { color: var(--text-muted); text-decoration: none; font-size: 14px; transition: color 0.2s; }
+        .nav-links-container a:hover, .nav-links-container a.active { color: var(--secondary); }
+
+        .pro-menu-toggle { display: none; background: #2b313a; color: var(--secondary); border: 1px solid var(--border); padding: 8px 10px; border-radius: 6px; cursor: pointer; align-items: center; justify-content: center; }
+        .pro-menu-toggle svg { width: 22px; height: 22px; fill: currentColor; }
+
+        .nav-actions { display: flex; gap: 12px; align-items: center; margin-left: auto; z-index: 10; }
+        
+        .icon-btn { 
+            background: #2b313a; color: var(--text); border: 1px solid var(--border); 
+            width: 40px; height: 40px; border-radius: 8px; cursor: pointer; 
+            display: inline-flex; align-items: center; justify-content: center; text-decoration: none;
+            transition: all 0.25s ease; position: relative;
+        }
+        .icon-btn svg { width: 18px; height: 18px; fill: currentColor; }
+        .icon-btn:hover { background: #3a414b; border-color: var(--secondary); color: var(--secondary); transform: translateY(-2px); }
+        .badge-count { position: absolute; top: -5px; right: -5px; background: #e74c3c; color: #fff; font-size: 9px; padding: 2px 5px; border-radius: 10px; font-weight: bold; display: none; }
+
+        .welcome-subscriber { font-size: 12.5px; color: var(--secondary); background: rgba(240,185,11,0.1); padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(240,185,11,0.2); display: inline-flex; align-items: center; gap: 6px; }
+
+        /* Indicateur de statut WebSocket */
+        .connection-status { font-size: 11px; padding: 4px 10px; border-radius: 10px; font-weight: 500; }
+        .status-disconnected { background: rgba(231, 76, 60, 0.15); color: #e74c3c; }
+        .status-connected { background: rgba(46, 204, 113, 0.15); color: #2ecc71; }
+
+        /* Conteneur principal Responsive (Gestion Mobile / PC) */
+        .messenger-container { max-width: 1100px; width: 100%; margin: 25px auto; padding: 0 20px; flex: 1; display: grid; grid-template-columns: 320px 1fr; gap: 20px; height: calc(100vh - 130px); min-height: 500px; z-index: 1; }
+        
+        /* Sidebar */
+        .conversations-sidebar { background: var(--card); border: 1px solid var(--border); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; }
+        .sidebar-header { padding: 18px 20px; border-bottom: 1px solid var(--border); font-weight: 700; color: #fff; font-size: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .conversations-list { overflow-y: auto; flex: 1; }
+        
+        .conversation-item { padding: 16px 20px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.2s; display: flex; flex-direction: column; gap: 4px; position: relative; }
+        .conversation-item:hover, .conversation-item.active { background: #262c35; border-left: 4px solid var(--secondary); }
+        .conv-name { font-weight: 600; font-size: 14px; color: #fff; display: flex; justify-content: space-between; align-items: center; }
+        .conv-preview { font-size: 12.5px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        .conv-badge { background: #e74c3c; color: #fff; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px; display: none; }
+
+        /* Panneau de discussion */
+        .chat-pane { background: var(--card); border: 1px solid var(--border); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; }
+        .chat-header { padding: 15px 25px; border-bottom: 1px solid var(--border); background: #181d23; display: flex; align-items: center; gap: 12px; }
+        
+        /* Bouton de retour mobile (masqué sur PC) */
+        .btn-back-mobile { display: none; background: #2b313a; border: 1px solid var(--border); color: var(--text); width: 36px; height: 36px; border-radius: 6px; align-items: center; justify-content: center; cursor: pointer; }
+        .btn-back-mobile svg { width: 18px; height: 18px; fill: currentColor; }
+
+        .chat-avatar { width: 38px; height: 38px; background: var(--secondary); color: #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; }
+        .chat-contact-info h4 { font-size: 15px; color: #fff; }
+
+        /* Corps des messages */
+        .chat-messages-body { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; background: #0e1217; }
+        
+        .message-row { display: flex; align-items: flex-end; gap: 8px; max-width: 80%; }
+        .message-row.incoming { align-self: flex-start; }
+        .message-row.outgoing { align-self: flex-end; flex-direction: row-reverse; }
+
+        .sender-avatar-circle { width: 26px; height: 26px; border-radius: 50%; background: var(--secondary); color: #000; font-size: 11px; font-weight: bold; display: flex; align-items: center; justify-content: center; flex-shrink: 0; text-transform: uppercase; }
+        .message-row.incoming .sender-avatar-circle { background: #21262d; color: var(--secondary); border: 1px solid var(--border); }
+
+        .message-bubble { padding: 12px 16px; border-radius: 12px; font-size: 13.5px; line-height: 1.5; position: relative; word-break: break-word; }
+        .message-row.incoming .message-bubble { background: #21262d; color: var(--text); border-bottom-left-radius: 2px; }
+        .message-row.outgoing .message-bubble { background: var(--secondary); color: #000; border-bottom-right-radius: 2px; font-weight: 500; }
+        
+        .message-footer { display: flex; align-items: center; justify-content: flex-end; gap: 5px; margin-top: 5px; }
+        .message-time { font-size: 10px; opacity: 0.7; }
+
+        .message-status-icon { width: 14px; height: 14px; display: inline-block; vertical-align: middle; }
+        .message-status-icon svg { width: 100%; height: 100%; fill: currentColor; }
+        .status-sent, .status-delivered { color: #848e9c; }
+        .status-read { color: #34b7f1; }
+
+        /* Zone de saisie */
+        .chat-input-footer { padding: 15px 20px; background: var(--card); border-top: 1px solid var(--border); display: flex; gap: 12px; align-items: center; }
+        .chat-input-footer input { flex: 1; background: #0b0e11; border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; color: #fff; font-size: 14px; outline: none; transition: border-color 0.2s; }
+        .chat-input-footer input:focus { border-color: var(--secondary); }
+        
+        .btn-send { background: var(--secondary); color: #000; border: none; width: 45px; height: 45px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: opacity 0.2s; flex-shrink: 0; }
+        .btn-send:hover { opacity: 0.9; }
+        .btn-send svg { width: 20px; height: 20px; fill: currentColor; }
+
+        footer { background: var(--card); padding: 20px; text-align: center; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 13px; z-index: 1; }
+
+        /* ADAPTATION MOBILE : Bascule d'affichage liste <-> discussion */
+        @media (max-width: 768px) {
+            nav { padding: 12px 15px; }
+            .nav-links-container { position: absolute; top: 100%; left: 0; width: 100%; background: var(--card); flex-direction: column; align-items: flex-start; padding: 20px; gap: 15px; border-bottom: 1px solid var(--border); display: none; }
+            .nav-links-container.mobile-active { display: flex; }
+            .pro-menu-toggle { display: flex; }
+
+            .messenger-container { grid-template-columns: 1fr; height: calc(100vh - 100px); margin: 10px auto; padding: 0 10px; }
+            
+            /* Par défaut sur mobile, on affiche la liste et on masque le panneau de discussion */
+            .messenger-container.show-chat .conversations-sidebar { display: none; }
+            .messenger-container.show-chat .chat-pane { display: flex; }
+
+            .conversations-sidebar { display: flex; height: 100%; }
+            .chat-pane { display: none; height: 100%; }
+            
+            .btn-back-mobile { display: flex; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="data-stream-bg" id="dataStreamBg"></div>
+
+    <nav>
+        <button class="pro-menu-toggle" id="proMenuToggle">
+            <svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+        </button>
+
+        <ul class="nav-links-container" id="navLinksContainer">
+            <li><a href="index.html">Accueil</a></li>
+            <li><a href="apropos.html">À propos</a></li>
+            <li><a href="domaines.html">Domaines & Investissements</a></li>
+            <li><a href="dons.html">Partenariat & Dons</a></li>
+            <li><a href="contact.html">Contact</a></li>
+        </ul>
+
+        <div class="nav-actions">
+            <span id="socketStatus" class="connection-status status-disconnected">Déconnecté</span>
+            <div class="welcome-subscriber" id="welcomeSubscriberBadge">
+                👤 <span id="userNameDisplay">Membre</span>
+            </div>
+            <a href="messages.html" class="icon-btn active" title="Messages">
+                <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM20 16H6l-2 2V4h16v12z"/></svg>
+                <span class="badge-count" id="navBadge" style="display:none;">1</span>
+            </a>
+        </div>
+    </nav>
+
+    <div class="messenger-container" id="messengerContainer">
+        <!-- Sidebar : Liste des conversations (affichée en premier sur mobile) -->
+        <div class="conversations-sidebar">
+            <div class="sidebar-header">
+                <span>Discussions</span>
+            </div>
+            <div class="conversations-list" id="conversationsList">
+                <div class="conversation-item active" data-room="support" onclick="ouvrirConversation()">
+                    <div class="conv-name">
+                        Support Fefhevd 
+                        <span id="convBadge" class="conv-badge">1</span>
+                    </div>
+                    <div class="conv-preview" id="convPreviewText">Canal direct avec l'administration</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panneau de discussion (masqué sur mobile tant qu'on ne clique pas sur le contact) -->
+        <div class="chat-pane">
+            <div class="chat-header">
+                <button class="btn-back-mobile" onclick="retourListeMobile()" title="Retour aux discussions">
+                    <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+                </button>
+                <div class="chat-avatar" id="activeAvatar">SF</div>
+                <div class="chat-contact-info">
+                    <h4 id="activeChatTitle">Support Fefhevd</h4>
+                </div>
+            </div>
+
+            <div class="chat-messages-body" id="chatMessagesBody" onclick="marquerCommeLu()">
+                <!-- Les messages s'afficheront ici dynamiquement -->
+            </div>
+
+            <form class="chat-input-footer" id="chatForm" onsubmit="sendMessage(event)">
+                <input type="text" id="messageInput" placeholder="Écrivez votre message..." required autocomplete="off" onfocus="marquerCommeLu()">
+                <button type="submit" class="btn-send" title="Envoyer">
+                    <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <footer>&copy; 2026 Fefhevd - Tous droits réservés</footer>
+
+    <script>
+        // Animation des particules en arrière-plan (identique à l'accueil)
+        const bgContainer = document.getElementById('dataStreamBg');
+        for (let i = 0; i < 15; i++) {
+            const p = document.createElement('div');
+            p.className = 'data-particle';
+            p.style.left = `${Math.random() * 100}%`;
+            p.style.animationDuration = `${3 + Math.random() * 4}s`;
+            p.style.animationDelay = `${Math.random() * 3}s`;
+            bgContainer.appendChild(p);
+        }
+
+        // Gestion du menu mobile de la navbar
+        document.getElementById('proMenuToggle').addEventListener('click', () => {
+            document.getElementById('navLinksContainer').classList.toggle('mobile-active');
+        });
+
+        const userName = localStorage.getItem('fefhevd_nom') || 'Utilisateur';
+        const userEmail = localStorage.getItem('fefhevd_email') || 'contact@fefhevd.com';
+        document.getElementById('userNameDisplay').innerText = userName;
+
+        let hasUnreadAdminMessage = false;
+        const messagesBody = document.getElementById('chatMessagesBody');
+
+        const svgSingleCheck = '<svg viewBox="0 0 16 15"><path d="M10.91 3.316l-.478-.372a.365.365 0 0 0-.51.063L4.566 9.879a.32.32 0 0 1-.484.033L1.891 7.769a.366.366 0 0 0-.515.006l-.423.433a.364.364 0 0 0 .006.514l3.255 3.185a.365.365 0 0 0 .509-.004l6.233-7.965a.366.366 0 0 0-.064-.51z"/></svg>';
+        const svgDoubleCheck = '<svg viewBox="0 0 18 16"><path d="M17.394 3.055l-.485-.368a.332.332 0 0 0-.476.071L8.35 12.352a.328.328 0 0 1-.476.03l-2.014-1.854a.334.334 0 0 0-.479.004l-.408.431a.333.333 0 0 0 .004.48l2.793 2.571a.333.333 0 0 0 .475-.028l8.975-10.96a.333.333 0 0 0-.069-.475zm-6.55 0l-.485-.368a.332.332 0 0 0-.476.07L2.458 13.064a.33.33 0 0 0-.022.449l.366.459a.332.332 0 0 0 .468.04l7.986-6.666a.333.333 0 0 0 .066-.475z"/></svg>';
+
+        // Gestion de l'affichage mobile : Passer de la liste à la conversation
+        function ouvrirConversation() {
+            document.getElementById('messengerContainer').classList.add('show-chat');
+            marquerCommeLu();
+        }
+
+        function retourListeMobile() {
+            document.getElementById('messengerContainer').classList.remove('show-chat');
+        }
+
+        // Chargement de l'historique
+        async function chargerHistorique() {
+            try {
+                const response = await fetch('/api/messages');
+                const messages = await response.json();
+                
+                messagesBody.innerHTML = '';
+                
+                messages.reverse().forEach(msg => {
+                    const isOutgoing = (msg.sender_type !== 'admin' && msg.sender === userName);
+                    const timeFormatted = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    const status = msg.is_read ? 'read' : 'delivered';
+                    
+                    appendMessageBubble(msg.id, msg.sender, msg.message, timeFormatted, isOutgoing, status, false);
+                    document.getElementById('convPreviewText').innerText = msg.message;
+                });
+            } catch (err) {
+                console.error("Erreur chargement historique :", err);
+            }
+        }
+
+        chargerHistorique();
+
+        // WebSocket en temps réel
+        const socket = io();
+        const statusBadge = document.getElementById('socketStatus');
+
+        socket.on('connect', () => {
+            statusBadge.textContent = 'En ligne';
+            statusBadge.className = 'connection-status status-connected';
+            socket.emit('user_join', { name: userName, email: userEmail });
+        });
+
+        socket.on('disconnect', () => {
+            statusBadge.textContent = 'Déconnecté';
+            statusBadge.className = 'connection-status status-disconnected';
+        });
+
+        socket.on('receive_message', (data) => {
+            const isOutgoing = (data.sender_type !== 'admin' && data.sender === userName);
+            
+            appendMessageBubble(data.id || Date.now(), data.sender, data.text, data.time, isOutgoing, 'delivered', true);
+            document.getElementById('convPreviewText').innerText = data.text;
+
+            if (data.sender_type === 'admin') {
+                hasUnreadAdminMessage = true;
+                document.getElementById('navBadge').style.display = 'inline-block';
+                document.getElementById('convBadge').style.display = 'inline-block';
+            }
+        });
+
+        socket.on('messages_read_update', (data) => {
+            document.querySelectorAll('.message-row.outgoing .message-status-icon').forEach(icon => {
+                icon.className = 'message-status-icon status-read';
+                icon.innerHTML = svgDoubleCheck;
+                icon.title = "Lu";
+            });
+        });
+
+        function sendMessage(event) {
+            event.preventDefault();
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            socket.emit('send_message', {
+                sender: userName,
+                email: userEmail,
+                text: text,
+                time: timeNow,
+                room: 'support',
+                sender_type: 'user'
+            });
+
+            input.value = '';
+        }
+
+        function marquerCommeLu() {
+            hasUnreadAdminMessage = false;
+            document.getElementById('navBadge').style.display = 'none';
+            document.getElementById('convBadge').style.display = 'none';
+            socket.emit('mark_as_read', { room: 'support', user: userName });
+        }
+
+        function appendMessageBubble(msgId, sender, text, time, isOutgoing, status = 'delivered', scrollToBottom = true) {
+            const row = document.createElement('div');
+            row.className = `message-row ${isOutgoing ? 'outgoing' : 'incoming'}`;
+            row.setAttribute('data-id', msgId);
+
+            const initial = sender && sender.length > 0 ? sender.charAt(0).toUpperCase() : '?';
+
+            const avatarCircle = document.createElement('div');
+            avatarCircle.className = 'sender-avatar-circle';
+            avatarCircle.innerText = initial;
+            avatarCircle.title = sender;
+
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble';
+            
+            let htmlContent = '';
+            if (!isOutgoing) {
+                htmlContent += `<strong style="font-size:11px; color:var(--secondary); display:block; margin-bottom:2px;">${escapeHtml(sender)}</strong>`;
+            }
+            
+            htmlContent += `${escapeHtml(text)}`;
+            
+            htmlContent += `<div class="message-footer">`;
+            htmlContent += `<span class="message-time">${time}</span>`;
+            
+            if (isOutgoing) {
+                let statusClass = 'status-delivered';
+                let checkSvg = svgDoubleCheck;
+                let titleText = 'Distribué';
+
+                if (status === 'read') {
+                    statusClass = 'status-read';
+                    titleText = 'Lu';
+                } else if (status === 'sent') {
+                    statusClass = 'status-sent';
+                    checkSvg = svgSingleCheck;
+                    titleText = 'Envoyé';
+                }
+
+                htmlContent += `<span class="message-status-icon ${statusClass}" title="${titleText}">${checkSvg}</span>`;
+            }
+            
+            htmlContent += `</div>`;
+            
+            bubble.innerHTML = htmlContent;
+
+            row.appendChild(avatarCircle);
+            row.appendChild(bubble);
+
+            messagesBody.appendChild(row);
+            
+            if (scrollToBottom) {
+                messagesBody.scrollTop = messagesBody.scrollHeight;
+            }
+        }
+
+        function escapeHtml(text) {
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+    </script>
+</body>
+</html>

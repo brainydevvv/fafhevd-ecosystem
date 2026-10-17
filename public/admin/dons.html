@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Campagnes de Dons - FAFHEVD</title>
+    <style>
+        :root { --secondary: #f0b90b; --bg: #0b0e11; --card: #1e2329; --text: #eaecef; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+        body { background: var(--bg); color: var(--text); display: flex; height: 100vh; }
+        aside { width: 260px; background: #161a1e; border-right: 1px solid #2b313a; display: flex; flex-direction: column; }
+        .sidebar-header { padding: 20px; font-weight: bold; color: var(--secondary); background: var(--card); border-bottom: 1px solid #2b313a; }
+        .sidebar-menu { list-style: none; padding: 15px 0; }
+        .sidebar-menu li { padding: 12px 20px; cursor: pointer; color: #848e9c; font-size: 14px; }
+        .sidebar-menu li:hover, .sidebar-menu li.active { background: #2b313a; color: var(--secondary); }
+        main { flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto; }
+        header { background: var(--card); padding: 15px 30px; border-bottom: 1px solid #2b313a; }
+        .content { padding: 25px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .card { background: var(--card); padding: 25px; border-radius: 8px; border: 1px solid #2b313a; margin-bottom: 20px; }
+        .card h3 { color: var(--secondary); margin-bottom: 15px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 13px; color: #848e9c; margin-bottom: 5px; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 11px; background: #0b0e11; border: 1px solid #2b313a; color: white; border-radius: 6px; }
+        .btn { background: var(--secondary); color: #0b0e11; border: none; padding: 12px; width: 100%; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        table th, table td { padding: 12px; text-align: left; border-bottom: 1px solid #2b313a; font-size: 13px; }
+        table th { background: #161a1e; color: #848e9c; }
+    </style>
+</head>
+<body>
+    <aside>
+        <div class="sidebar-header">⚡ FAFHEVD Admin</div>
+        <ul class="sidebar-menu">
+            <li onclick="location.href='dashboard.html'">📊 Tableau de Bord & Dons</li>
+            <li onclick="location.href='streaming.html'">🎥 Mini TV & Studio Direct</li>
+            <li class="active">🎁 Campagnes & Collecte de Dons</li>
+            <li onclick="location.href='messages.html'">💬 Messages & Support</li>
+            <li onclick="location.href='avis.html'">⭐ Commentaires & Avis</li>
+            <li onclick="location.href='emplois.html'">💼 Offres d'Emploi</li>
+            <li onclick="localStorage.clear(); location.href='login.html'" style="color:#ef4444; margin-top:30px;">🚪 Déconnexion</li>
+        </ul>
+    </aside>
+    <main>
+        <header><h2>Gestion des Campagnes de Collecte de Dons</h2></header>
+        <div class="content">
+            <div class="grid-2">
+                <div class="card">
+                    <h3>Créer une Campagne de Don</h3>
+                    <form id="campagne-form">
+                        <div class="form-group"><label>Titre de la Campagne</label><input type="text" id="camp-titre" required placeholder="Ex: Panzi Lumière & Sécurité"></div>
+                        <div class="form-group"><label>Objectif Financier ($)</label><input type="number" id="camp-obj" required placeholder="Ex: 5000"></div>
+                        <div class="form-group">
+                            <label>Moyens de Paiement Acceptés</label>
+                            <select id="camp-paiement">
+                                <option value="Mobile Money (M-Pesa / Airtel)">Mobile Money (M-Pesa / Airtel)</option>
+                                <option value="Crypto-monnaie (USDT / Vynacoin)">Crypto-monnaie (USDT / Vynacoin)</option>
+                                <option value="Virement Bancaire / Carte">Virement Bancaire / Carte</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label>Description</label><textarea id="camp-desc" rows="3" required placeholder="Détails du projet humanitaire..."></textarea></div>
+                        <button type="submit" class="btn">Publier la Campagne</button>
+                    </form>
+                </div>
+                <div class="card">
+                    <h3>Campagnes Actives & Statistiques</h3>
+                    <table>
+                        <thead><tr><th>Titre</th><th>Objectif</th><th>Paiements</th></tr></thead>
+                        <tbody id="camp-table"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+    <script>
+        document.getElementById('campagne-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = {
+                titre: document.getElementById('camp-titre').value,
+                objectif: document.getElementById('camp-obj').value,
+                moyen_paiement: document.getElementById('camp-paiement').value,
+                description: document.getElementById('camp-desc').value
+            };
+            const res = await fetch('/api/campagnes', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+            const data = await res.json();
+            if(data.success) { alert(data.message); loadCampagnes(); document.getElementById('campagne-form').reset(); }
+        });
+
+        async function loadCampagnes() {
+            const res = await fetch('/api/campagnes');
+            const data = await res.json();
+            document.getElementById('camp-table').innerHTML = data.map(c => `<tr><td><b>${c.titre}</b><br><small>${c.description}</small></td><td><b>$${c.objectif}</b></td><td><small>${c.moyen_paiement}</small></td></tr>`).join('');
+        }
+        loadCampagnes();
+    </script>
+</body>
+</html>

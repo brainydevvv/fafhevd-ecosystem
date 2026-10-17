@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Domaines d'intervention & Investissements - FAFHEVD</title>
+    
+    <!-- Éléments PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#f0b90b">
+
+    <style>
+        :root { --secondary: #f0b90b; --bg: #0b0e11; --card: #1e2329; --text: #eaecef; --text-muted: #848e9c; --border: #2b313a; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: var(--bg); color: var(--text); display: flex; flex-direction: column; min-height: 100vh; }
+        
+        nav { background: var(--card); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 1000; }
+        .logo { font-weight: bold; color: var(--secondary); text-decoration: none; font-size: 16px; }
+        .nav-links { display: flex; gap: 20px; list-style: none; align-items: center; }
+        .nav-links a { color: var(--text-muted); text-decoration: none; font-size: 14px; transition: color 0.2s; }
+        .nav-links a:hover, .nav-links a.active { color: var(--secondary); }
+
+        .pro-menu-toggle { display: none; background: #2b313a; color: var(--secondary); border: 1px solid var(--border); padding: 8px 10px; border-radius: 6px; cursor: pointer; align-items: center; justify-content: center; }
+        .pro-menu-toggle svg { width: 22px; height: 22px; fill: currentColor; }
+
+        .content { padding: 40px 20px; max-width: 1000px; margin: 0 auto; flex-grow: 1; width: 100%; }
+        .intro-section { margin-bottom: 30px; }
+        .intro-section h2 { color: #fff; font-size: 24px; margin-bottom: 10px; }
+        .intro-section p { color: var(--text-muted); font-size: 14px; line-height: 1.6; }
+        .grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
+        .card { background: var(--card); padding: 30px; border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .card h3 { color: var(--secondary); margin-bottom: 15px; font-size: 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .badge { background: rgba(240, 185, 11, 0.1); color: var(--secondary); font-size: 11px; padding: 4px 10px; border-radius: 4px; border: 1px solid rgba(240, 185, 11, 0.3); text-transform: uppercase; }
+        .card p.desc { color: var(--text); font-size: 14px; margin-bottom: 15px; line-height: 1.5; }
+        .card ul { padding-left: 18px; color: var(--text-muted); font-size: 13px; line-height: 1.6; margin-bottom: 15px; }
+        .investment-note { background: #161a1e; border-left: 3px solid var(--secondary); padding: 12px 15px; font-size: 13px; color: var(--text-muted); border-radius: 0 4px 4px 0; }
+        .investment-note strong { color: #fff; }
+        
+        footer { background: var(--card); padding: 20px; text-align: center; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 13px; }
+
+        @media (max-width: 768px) {
+            .nav-links { position: absolute; top: 100%; left: 0; width: 100%; background: var(--card); flex-direction: column; align-items: flex-start; padding: 20px; gap: 15px; border-bottom: 1px solid var(--border); display: none; }
+            .nav-links.mobile-active { display: flex; }
+            .pro-menu-toggle { display: flex; }
+            .card ul[style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="index.html" class="logo">⚡ FAFHEVD</a>
+        <button class="pro-menu-toggle" id="proMenuToggle">
+            <svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+        </button>
+        <ul class="nav-links" id="navLinksContainer">
+            <li><a href="index.html">Accueil</a></li>
+            <li><a href="apropos.html">À propos</a></li>
+            <li><a href="domaines.html" class="active">Domaines & Investissements</a></li>
+            <li><a href="dons.html">Partenariat & Dons</a></li>
+            <li><a href="contact.html">Contact</a></li>
+        </ul>
+    </nav>
+
+    <div class="content">
+        <div class="intro-section">
+            <h2>Piliers Opérationnels & Opportunités d'Investissement</h2>
+            <p>Nos domaines d'intervention sont conçus pour générer une valeur ajoutée à la fois humanitaire, industrielle et financière. Chaque pôle représente une opportunité concrète d'investissement à fort impact et intègre des modèles de travail modernes, incluant des solutions de télétravail pour nos collaborateurs et partenaires digitaux.</p>
+        </div>
+
+        <div class="grid">
+            <!-- Pôle 1 -->
+            <div class="card">
+                <h3>1. Encadrement Social et Humanitaire <span class="badge">Impact Social</span></h3>
+                <p class="desc">Programmes ciblés pour l'autonomisation et la réinsertion des couches vulnérables.</p>
+                <ul>
+                    <li>Encadrement des femmes veuves, filles mères et jeunes garçons déshérités.</li>
+                </ul>
+                <div class="investment-note">
+                    <strong>Opportunité d'investissement / Partenariat :</strong> Financement de programmes de mentorat, bourses d'insertion sociale et fonds de roulement pour micro-entreprises féminines.
+                </div>
+            </div>
+
+            <!-- Pôle 2 -->
+            <div class="card">
+                <h3>2. Service Multi-Sectoriel (Agro-Business, Pêche & Élevage) <span class="badge">Secteur Porteur</span></h3>
+                <p class="desc">Exploitation des chaînes de valeur alimentaires pour la sécurité alimentaire et l'exportation régionale.</p>
+                <ul>
+                    <li>Agriculture intensive et durable</li>
+                    <li>Pêche moderne et semi-industrielle</li>
+                    <li>Élevage à haut rendement</li>
+                </ul>
+                <div class="investment-note">
+                    <strong>Opportunité d'investissement / Partenariat :</strong> Injection de capitaux pour l'acquisition d'intrants modernes, d'équipements mécanisés et d'infrastructures de stockage à grande échelle.
+                </div>
+            </div>
+
+            <!-- Pôle 3 -->
+            <div class="card">
+                <h3>3. Programme d'Assistances et Métiers Industriels <span class="badge">Production & Services</span></h3>
+                <p class="desc">Plateforme professionnelle de formation technique, artisanale et industrielle diversifiée.</p>
+                <ul style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <li>Coupe et couture perfectionner</li>
+                    <li>Conduite automobile</li>
+                    <li>Maison de statistique</li>
+                    <li>Soudure industrielle</li>
+                    <li>Service d'hygiène et assainissement</li>
+                    <li>Briqueteries & Fabrication des savons</li>
+                    <li>Machinerie menuiserie & Électricité</li>
+                    <li>Recyclage des déchets</li>
+                    <li>Décoration des Cérémonies (Photo/Filmage)</li>
+                    <li>Pâtisserie professionnelle</li>
+                    <li>Vente et achat d'articles & divers</li>
+                </ul>
+                <div class="investment-note" style="margin-top: 15px;">
+                    <strong>Opportunité d'investissement / Partenariat :</strong> Partenariat technologique et apports d'équipements pour industrialiser les ateliers de production et de recyclage.
+                </div>
+            </div>
+
+            <!-- Pôle 4 -->
+            <div class="card">
+                <h3>4. Éducation Financière & FinTech <span class="badge">Inclusion & Croissance</span></h3>
+                <p class="desc">Structuration des compétences économiques de base et accès aux leviers de financement.</p>
+                <ul>
+                    <li>Éducation de budget et gestion financière personnelle</li>
+                    <li>Épargne à la carte de crédit et solutions bancaires alternatives</li>
+                    <li>Renforcement et gestion de micro-crédits</li>
+                </ul>
+                <div class="investment-note">
+                    <strong>Opportunité d'investissement / Partenariat :</strong> Co-développement de solutions FinTech d'épargne et de micro-crédit digital, co-financement des lignes de crédit communautaires.
+                </div>
+            </div>
+
+            <!-- Pôle 5 -->
+            <div class="card">
+                <h3>5. Entretien des Orphelins et Enfants de la Rue <span class="badge">Responsabilité Sociétale</span></h3>
+                <p class="desc">Prise en charge intégrale, éducation et encadrement moral des jeunes d'avenir.</p>
+                <ul>
+                    <li>Éducation formelle et spécialisée</li>
+                    <li>Apostolat et accompagnement éthique</li>
+                    <li>Formation aux métiers de services (fille et garçon de ménage qualifiés)</li>
+                </ul>
+                <div class="investment-note">
+                    <strong>Opportunité d'investissement / Partenariat :</strong> Parrainage institutionnel et investissement dans les centres d'accueil et d'éducation.
+                </div>
+            </div>
+
+            <!-- NOUVEAU PÔLE 6 : ÉCO-TECHNOLOGIE & ÉNERGIES VERTES -->
+            <div class="card" style="border-color: var(--secondary);">
+                <h3>6. Éco-Technologie, Biogaz & Agriculture Verte <span class="badge" style="background: var(--secondary); color:#000;">Innovation Durable</span></h3>
+                <p class="desc">Valorisation des déchets organiques locaux à travers des technologies de pointe pour produire de l'énergie propre et des engrais naturels à haut rendement.</p>
+                <ul>
+                    <li><b>Unités de méthanisation (Biogaz) :</b> Transformation des déchets de ferme et ordures ménagères en gaz combustible propre pour les ménages et structures locales.</li>
+                    <li><b>Vermiculture & Élevage d'insectes (BSF) :</b> Production de protéines organiques et fertilisants naturels pour l'agriculture locale.</li>
+                    <li><b>Éco-matériaux :</b> Fabrication de pavés écologiques et briques recyclées pour lutter contre la pollution plastique urbaine à Bukavu.</li>
+                </ul>
+                <div class="investment-note">
+                    <strong>Opportunité d'investissement / Partenariat :</strong> Financement des équipements de biodigesteurs, co-développement de projets d'économie circulaire et valorisation des crédits carbone communautaires.
+                </div>
+            </div>
+
+            <!-- Pôle Télétravail / Hub Numérique -->
+            <div class="card">
+                <h3>7. Hub Numérique & Opportunités en Télétravail <span class="badge">Innovation Globale</span></h3>
+                <p class="desc">FAFHEVD intègre une dimension moderne de travail à distance pour connecter les talents locaux aux marchés internationaux.</p>
+                <ul>
+                    <li><b>Gestion de projets et administration à distance :</b> Coordination en télétravail pour le suivi des programmes, la comptabilité et la stratégie digitale.</li>
+                    <li><b>Collaboration internationale :</b> Opportunités ouvertes aux partenaires, consultants et investisseurs étrangers pour participer activement à la gouvernance, l'audit et le développement de nos initiatives via des outils numériques sécurisés.</li>
+                    <li><b>Formation aux compétences numériques :</b> Préparation de notre jeunesse et de nos co-acteurs aux métiers du web et du travail en ligne.</li>
+                </ul>
+                <div class="investment-note">
+                    <strong>Opportunité d'investissement / Partenariat :</strong> Investissement dans notre infrastructure technologique (connexion haut débit, équipements informatiques du hub) et co-collaboration via nos programmes de télétravail international.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>&copy; 2026 FAFHEVD - Investir dans l'impact durable</footer>
+
+    <script>
+        // Gestion du menu hamburger mobile
+        document.getElementById('proMenuToggle').addEventListener('click', () => {
+            document.getElementById('navLinksContainer').classList.toggle('mobile-active');
+        });
+
+        // Enregistrement du Service Worker pour la PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then((reg) => { console.log('Service Worker enregistré:', reg.scope); })
+                    .catch((err) => { console.log('Erreur enregistrement SW:', err); });
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Studio de Streaming & Mini TV Professionnel - FAFHEVD</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        :root { --secondary: #f0b90b; --bg: #0b0e11; --card: #1e2329; --text: #eaecef; --text-muted: #848e9c; --border: #2b313a; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
+        
+        aside { width: 260px; background: #161a1e; border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
+        .sidebar-header { padding: 20px; font-weight: bold; color: var(--secondary); background: var(--card); border-bottom: 1px solid var(--border); font-size: 16px; display: flex; align-items: center; gap: 10px; }
+        .sidebar-menu { list-style: none; padding: 15px 0; overflow-y: auto; }
+        .sidebar-menu li { padding: 12px 20px; cursor: pointer; color: var(--text-muted); font-size: 14px; transition: all 0.2s; }
+        .sidebar-menu li:hover, .sidebar-menu li.active { background: var(--border); color: var(--secondary); }
+        
+        main { flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto; }
+        header { background: var(--card); padding: 15px 30px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        header h2 { font-size: 20px; color: #fff; }
+        
+        .socket-status { font-size: 12px; padding: 4px 10px; border-radius: 12px; background: rgba(231, 76, 60, 0.2); color: #e74c3c; font-weight: 600; }
+        .socket-status.connected { background: rgba(46, 204, 113, 0.2); color: #2ecc71; }
+
+        .content { padding: 25px; display: flex; flex-direction: column; gap: 20px; }
+        
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        .stat-card { background: var(--card); border: 1px solid var(--border); padding: 18px; border-radius: 10px; }
+        .stat-label { font-size: 12px; color: var(--text-muted); }
+        .stat-value { font-size: 24px; font-weight: bold; color: var(--secondary); margin-top: 5px; }
+
+        .grid-2 { display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; }
+        @media(max-width: 1024px) { .grid-2 { grid-template-columns: 1fr; } }
+
+        .card { background: var(--card); padding: 25px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+        .card h3 { color: var(--secondary); margin-bottom: 15px; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+        
+        .video-studio-box { background: #000; border-radius: 8px; overflow: hidden; margin-bottom: 15px; height: 220px; display: flex; align-items: center; justify-content: center; position: relative; border: 2px solid var(--border); }
+        .live-tag { position: absolute; top: 12px; left: 12px; background: #ef4444; color: #fff; font-size: 10px; font-weight: bold; padding: 4px 8px; border-radius: 4px; display: none; align-items: center; gap: 5px; text-transform: uppercase; }
+        .live-dot { width: 6px; height: 6px; background: #fff; border-radius: 50%; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 12.5px; color: var(--text-muted); margin-bottom: 6px; font-weight: 500; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 14px; background: var(--bg); border: 1px solid var(--border); color: white; border-radius: 8px; font-size: 13.5px; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--secondary); outline: none; }
+        
+        .btn { background: var(--secondary); color: #0b0e11; border: none; padding: 11px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: opacity 0.2s; font-size: 13.5px; }
+        .btn:hover { opacity: 0.9; }
+        .btn-danger { background: #ef4444; color: white; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        table th, table td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); font-size: 13px; }
+        table th { background: #161a1e; color: var(--text-muted); font-weight: 600; }
+        table td { color: #fff; }
+        
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+        .badge.live { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        .badge.prog { background: rgba(240, 185, 11, 0.2); color: var(--secondary); }
+        .badge.offline { background: rgba(132, 142, 156, 0.2); color: var(--text-muted); }
+    </style>
+</head>
+<body>
+    <aside>
+        <div class="sidebar-header">⚡ FAFHEVD Studio</div>
+        <ul class="sidebar-menu">
+            <li onclick="location.href='dashboard.html'">📊 Tableau de Bord & Dons</li>
+            <li class="active">🎥 Mini TV & Studio Direct</li>
+            <li onclick="location.href='admin-notifications.html'">🔔 Studio de Notifications</li>
+            <li onclick="location.href='dons.html'">🎁 Campagnes & Collecte</li>
+            <li onclick="location.href='messages.html'">💬 Messages & Support</li>
+            <li onclick="location.href='avis.html'">⭐ Commentaires & Avis</li>
+            <li onclick="location.href='emplois.html'">💼 Offres d'Emploi</li>
+            <li onclick="localStorage.clear(); location.href='login.html'" style="color:#ef4444; margin-top:30px;">🚪 Déconnexion</li>
+        </ul>
+    </aside>
+
+    <main>
+        <header>
+            <h2>Studio de Streaming & Pilotage Mini TV</h2>
+            <div id="socketStatus" class="socket-status">Connexion en cours...</div>
+        </header>
+
+        <div class="content">
+            <!-- Statistiques du Studio TV -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-label">Statut du Signal TV</span>
+                    <div class="stat-value" id="statLiveStatus" style="font-size: 18px; color: #ef4444;">⚪ Hors Ligne</div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Émissions / Flux Enregistrés</span>
+                    <div class="stat-value" id="statTotalStreams">0</div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Vues Globales Cumulées</span>
+                    <div class="stat-value" id="statTotalViews">0</div>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <!-- Studio Caméra Direct (Webcam Live & Signal Accueil) -->
+                <div class="card">
+                    <h3>🔴 Studio Caméra Direct (Webcam Live)</h3>
+                    <div class="video-studio-box">
+                        <div class="live-tag" id="liveTagIndicator"><div class="live-dot"></div> En Direct</div>
+                        <video id="webcam-preview" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover;"></video>
+                        <p id="camPlaceholder" style="color: var(--text-muted); font-size: 13px; position: absolute;">Caméra inactive</p>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn" onclick="startWebcam()" style="flex:1;">Activer la Caméra & Diffuser</button>
+                        <button class="btn btn-danger" onclick="stopWebcam()" style="flex:1;">Arrêter le Direct</button>
+                    </div>
+                </div>
+
+                <!-- Programmation d'un Flux / Média TV -->
+                <div class="card">
+                    <h3>📺 Programmer ou Diffuser un Média</h3>
+                    <form id="media-form">
+                        <div class="form-group">
+                            <label>Titre de l'émission *</label>
+                            <input type="text" id="media-title" required placeholder="Ex: Journal Local Bukavu / Direct Spécial">
+                        </div>
+                        <div class="form-group">
+                            <label>Type de Média</label>
+                            <select id="media-type">
+                                <option value="tv">Direct TV (Flux Principal)</option>
+                                <option value="live">Streaming Live (Externe)</option>
+                                <option value="video">Vidéo YouTube / Embed</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>URL du Flux ou Lien Vidéo *</label>
+                            <input type="text" id="media-url" required placeholder="Ex: https://www.youtube.com/embed/...">
+                        </div>
+                        <div class="form-group">
+                            <label>Statut de Diffusion</label>
+                            <select id="media-statut">
+                                <option value="en-direct">🟢 En Direct (Activer sur l'accueil)</option>
+                                <option value="hors-ligne">⚪ Hors Ligne (En attente)</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn" style="width:100%;">Publier & Mettre à jour le Signal</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Grille TV & Historique des flux -->
+            <div class="card">
+                <h3>📋 Grille TV & Historique des Flux Actifs</h3>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Titre</th>
+                                <th>Type</th>
+                                <th>Statut</th>
+                                <th>Lien / URL</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="media-table">
+                            <tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Chargement de la grille...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const socket = io();
+        let webcamStream = null;
+
+        // Gestion Socket.io
+        socket.on('connect', () => {
+            const st = document.getElementById('socketStatus');
+            st.innerText = "Connecté en temps réel";
+            st.className = "socket-status connected";
+            socket.emit('user_join', { name: 'Admin Streaming Studio', email: 'admin@fafhevd.com' });
+        });
+
+        socket.on('disconnect', () => {
+            const st = document.getElementById('socketStatus');
+            st.innerText = "Déconnecté";
+            st.className = "socket-status";
+        });
+
+        // Activer la Webcam et basculer en direct sur l'accueil
+        async function startWebcam() {
+            try {
+                webcamStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                const videoEl = document.getElementById('webcam-preview');
+                videoEl.srcObject = webcamStream;
+                document.getElementById('camPlaceholder').style.display = 'none';
+                document.getElementById('liveTagIndicator').style.display = 'flex';
+
+                // Enregistrement direct dans la base de données
+                const payload = {
+                    titre: "Direct Studio Web (Caméra Live)",
+                    description: "Diffusion en direct depuis le studio web FAFHEVD.",
+                    url_media: "webcam-live-stream",
+                    type_media: "tv",
+                    statut: "en-direct"
+                };
+
+                const res = await fetch('/api/multimedia', { 
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'}, 
+                    body: JSON.stringify(payload) 
+                });
+
+                if(res.ok) {
+                    loadMediaData();
+                    alert("Caméra activée ! Le direct est maintenant en ligne sur la plateforme.");
+                }
+            } catch(e) { 
+                alert("Erreur d'accès à la caméra : " + e.message); 
+            }
+        }
+
+        // Arrêter la Webcam et mettre hors-ligne
+        async function stopWebcam() {
+            if(webcamStream) { 
+                webcamStream.getTracks().forEach(t => t.stop()); 
+                document.getElementById('webcam-preview').srcObject = null; 
+                document.getElementById('camPlaceholder').style.display = 'block';
+                document.getElementById('liveTagIndicator').style.display = 'none';
+
+                const payload = {
+                    titre: "Arrêt du Direct Caméra",
+                    description: "Le direct est terminé.",
+                    url_media: "",
+                    type_media: "tv",
+                    statut: "hors-ligne"
+                };
+
+                await fetch('/api/multimedia', { 
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'}, 
+                    body: JSON.stringify(payload) 
+                });
+
+                loadMediaData();
+                alert("Le direct a été arrêté et mis hors-ligne.");
+            }
+        }
+
+        // Soumission du formulaire de média / flux TV
+        document.getElementById('media-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = {
+                titre: document.getElementById('media-title').value,
+                type_media: document.getElementById('media-type').value,
+                url_media: document.getElementById('media-url').value,
+                statut: document.getElementById('media-statut').value
+            };
+
+            try {
+                const res = await fetch('/api/multimedia', { 
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'}, 
+                    body: JSON.stringify(payload) 
+                });
+                const data = await res.json();
+                if(res.ok) {
+                    alert(data.message || "Programme publié avec succès !");
+                    loadMediaData();
+                    document.getElementById('media-form').reset();
+                } else {
+                    alert("Erreur : " + (data.error || "Échec de l'enregistrement"));
+                }
+            } catch(err) {
+                alert("Impossible de joindre le serveur.");
+            }
+        });
+
+        // Charger les flux multimédias et mettre à jour les statistiques
+        async function loadMediaData() {
+            try {
+                const res = await fetch('/api/multimedia');
+                const rows = await res.json();
+                const tbody = document.getElementById('media-table');
+                
+                let totalViews = 0;
+                let activeLiveCount = 0;
+
+                if (!rows || rows.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Aucun flux enregistré.</td></tr>`;
+                    document.getElementById('statTotalStreams').innerText = "0";
+                    document.getElementById('statTotalViews').innerText = "0";
+                    document.getElementById('statLiveStatus').innerText = "⚪ Hors Ligne";
+                    document.getElementById('statLiveStatus').style.color = "#ef4444";
+                    return;
+                }
+
+                document.getElementById('statTotalStreams').innerText = rows.length;
+
+                tbody.innerHTML = rows.map(m => {
+                    totalViews += (m.vues || 0);
+                    if (m.statut === 'en-direct') activeLiveCount++;
+
+                    let badgeClass = 'offline';
+                    if (m.statut === 'en-direct') badgeClass = 'live';
+                    else if (m.statut === 'programme') badgeClass = 'prog';
+
+                    return `
+                        <tr>
+                            <td>#${m.id}</td>
+                            <td><b>${m.titre}</b></td>
+                            <td>${m.type_media.toUpperCase()}</td>
+                            <td><span class="badge ${badgeClass}">${m.statut}</span></td>
+                            <td><a href="${m.url_media}" target="_blank" style="color:var(--secondary); text-decoration:none;">${m.url_media ? 'Ouvrir le lien ↗' : 'N/A'}</a></td>
+                            <td><button class="btn" style="padding: 5px 10px; font-size: 11px;" onclick="navigator.clipboard.writeText('${m.url_media}'); alert('Lien copié !');">Copier</button></td>
+                        </tr>
+                    `;
+                }).join('');
+
+                document.getElementById('statTotalViews').innerText = totalViews;
+                
+                if (activeLiveCount > 0) {
+                    document.getElementById('statLiveStatus').innerText = "🟢 En Direct Actif";
+                    document.getElementById('statLiveStatus').style.color = "#2ecc71";
+                } else {
+                    document.getElementById('statLiveStatus').innerText = "⚪ Hors Ligne";
+                    document.getElementById('statLiveStatus').style.color = "#ef4444";
+                }
+
+            } catch(e) {
+                console.error("Erreur de chargement des flux", e);
+            }
+        }
+
+        window.onload = () => {
+            loadMediaData();
+        };
+    </script>
+</body>
+</html>

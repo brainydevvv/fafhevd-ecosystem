@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avis & Témoignages - FAFHEVD</title>
+    
+    <!-- Éléments PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#f0b90b">
+
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        :root { --secondary: #f0b90b; --bg: #0b0e11; --card: #1e2329; --text: #eaecef; --text-muted: #848e9c; --border: #2b313a; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: var(--bg); color: var(--text); display: flex; flex-direction: column; min-height: 100vh; }
+
+        nav { background: var(--card); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 1000; }
+        .logo { font-weight: bold; color: var(--secondary); text-decoration: none; font-size: 16px; }
+        .nav-links-container { display: flex; gap: 20px; list-style: none; align-items: center; }
+        .nav-links-container a { color: var(--text-muted); text-decoration: none; font-size: 14px; transition: color 0.2s; }
+        .nav-links-container a:hover, .nav-links-container a.active { color: var(--secondary); }
+
+        .pro-menu-toggle { display: none; background: #2b313a; color: var(--secondary); border: 1px solid var(--border); padding: 8px 10px; border-radius: 6px; cursor: pointer; align-items: center; justify-content: center; }
+        .pro-menu-toggle svg { width: 22px; height: 22px; fill: currentColor; }
+
+        .hero-section { padding: 50px 20px; text-align: center; background: linear-gradient(180deg, rgba(30, 35, 41, 0.4) 0%, transparent 100%); border-bottom: 1px solid var(--border); }
+        .hero-section h1 { color: #fff; font-size: 30px; margin-bottom: 10px; font-weight: 800; }
+        .hero-section h1 span { color: var(--secondary); }
+        .hero-section p { color: var(--text-muted); max-width: 600px; margin: 0 auto; font-size: 14.5px; line-height: 1.6; }
+
+        .content { padding: 40px 20px; max-width: 900px; margin: 0 auto; width: 100%; flex-grow: 1; display: flex; flex-direction: column; gap: 40px; }
+
+        .card { background: var(--card); padding: 35px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 8px 30px rgba(0,0,0,0.4); }
+        .card h2 { color: var(--secondary); margin-bottom: 20px; font-size: 20px; display: flex; align-items: center; gap: 10px; }
+        
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-size: 12.5px; color: var(--text-muted); margin-bottom: 8px; font-weight: 500; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 12px 14px; background: #0b0e11; border: 1px solid var(--border); border-radius: 8px; color: #fff; font-size: 14px; }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color: var(--secondary); outline: none; box-shadow: 0 0 0 3px rgba(240,185,11,0.15); }
+        .form-group textarea { resize: vertical; height: 120px; }
+
+        .btn-submit { background: var(--secondary); color: #000; border: none; padding: 14px; width: 100%; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer; transition: opacity 0.2s; }
+        .btn-submit:hover { opacity: 0.9; }
+
+        .community-feed h2 { color: #fff; font-size: 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        .reviews-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+        .review-card { background: var(--card); border: 1px solid var(--border); padding: 22px; border-radius: 10px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .review-header { display: flex; justify-content: space-between; align-items: center; }
+        .review-author { font-weight: bold; color: #fff; font-size: 14px; }
+        .review-stars { color: var(--secondary); font-size: 13px; }
+        .review-comment { color: var(--text-muted); font-size: 13.5px; line-height: 1.6; }
+        .review-date { font-size: 11px; color: #555; align-self: flex-end; }
+
+        #successToast {
+            position: fixed; top: 30px; right: 30px; background: linear-gradient(135deg, #2ecc71, #27ae60); color: #fff;
+            padding: 16px 24px; border-radius: 10px; box-shadow: 0 10px 30px rgba(46,204,113,0.4); z-index: 3000;
+            display: none; align-items: center; gap: 12px; font-weight: 600; font-size: 14px;
+        }
+
+        footer { background: var(--card); padding: 25px; text-align: center; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 13px; margin-top: auto; }
+
+        @media (max-width: 768px) {
+            .nav-links-container { position: absolute; top: 100%; left: 0; width: 100%; background: var(--card); flex-direction: column; align-items: flex-start; padding: 20px; gap: 15px; border-bottom: 1px solid var(--border); display: none; }
+            .nav-links-container.mobile-active { display: flex; }
+            .pro-menu-toggle { display: flex; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="successToast">
+        <svg style="width:22px; height:22px; fill:#fff;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+        <span id="toastText">Avis soumis avec succès !</span>
+    </div>
+
+    <nav>
+        <a href="index.html" class="logo">⚡ FAFHEVD</a>
+        <button class="pro-menu-toggle" id="proMenuToggle">
+            <svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+        </button>
+        <ul class="nav-links-container" id="navLinksContainer">
+            <li><a href="index.html">Accueil</a></li>
+            <li><a href="apropos.html">À propos</a></li>
+            <li><a href="domaines.html">Domaines & Investissements</a></li>
+            <li><a href="dons.html">Partenariat & Dons</a></li>
+            <li><a href="avis.html" class="active">Avis & Témoignages</a></li>
+        </ul>
+    </nav>
+
+    <div class="hero-section">
+        <h1>Espace Communautaire & <span>Témoignages</span></h1>
+        <p>Partagez votre expérience avec FAFHEVD ou consultez les retours validés de nos co-acteurs à Bukavu et ailleurs.</p>
+    </div>
+
+    <div class="content">
+        <div class="card">
+            <h2>✍️ Laisser votre avis</h2>
+            <form id="avisForm" onsubmit="submitAvis(event)">
+                <div class="form-group">
+                    <label>Votre Nom ou Pseudo *</label>
+                    <input type="text" id="avisNom" required placeholder="Ex: Jean-Paul M.">
+                </div>
+                <div class="form-group">
+                    <label>Note globale *</label>
+                    <select id="avisNote" required>
+                        <option value="5">⭐⭐⭐⭐⭐ (5/5 - Excellent)</option>
+                        <option value="4">⭐⭐⭐⭐ (4/5 - Très bien)</option>
+                        <option value="3">⭐⭐⭐ (3/5 - Bien)</option>
+                        <option value="2">⭐⭐ (2/5 - Moyen)</option>
+                        <option value="1">⭐ (1/5 - À améliorer)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Votre commentaire ou témoignage *</label>
+                    <textarea id="avisCommentaire" required placeholder="Dites-nous ce que vous pensez des actions FAFHEVD..."></textarea>
+                </div>
+                <button type="submit" class="btn-submit" id="btnSubmitAvis">Soumettre mon avis</button>
+            </form>
+        </div>
+
+        <div class="community-feed">
+            <h2>💬 Témoignages validés</h2>
+            <div class="reviews-grid" id="publicReviewsGrid">
+                <p style="color: var(--text-muted); font-size: 13.5px;">Chargement des avis...</p>
+            </div>
+        </div>
+    </div>
+
+    <footer>&copy; 2026 FAFHEVD - Tous droits réservés</footer>
+
+    <script>
+        const socket = io();
+
+        document.getElementById('proMenuToggle').addEventListener('click', () => {
+            document.getElementById('navLinksContainer').classList.toggle('mobile-active');
+        });
+
+        function showToast(msg) {
+            const t = document.getElementById('successToast');
+            document.getElementById('toastText').innerText = msg;
+            t.style.display = 'flex';
+            setTimeout(() => { t.style.display = 'none'; }, 4000);
+        }
+
+        async function loadPublicReviews() {
+            try {
+                const res = await fetch('/api/commentaires');
+                const data = await res.json();
+                const grid = document.getElementById('publicReviewsGrid');
+
+                const approved = (data || []).filter(item => item.statut === 'approuvé' || item.statut === 'approved');
+
+                if (approved.length === 0) {
+                    grid.innerHTML = `<p style="color: var(--text-muted); font-size: 13.5px;">Aucun témoignage validé pour le moment.</p>`;
+                    return;
+                }
+
+                grid.innerHTML = approved.map(rev => {
+                    const stars = '⭐'.repeat(parseInt(rev.note) || 5);
+                    const authorName = rev.auteur || rev.nom || 'Membre';
+                    const textContent = rev.contenu || rev.commentaire || '';
+                    return `
+                        <div class="review-card">
+                            <div class="review-header">
+                                <span class="review-author">${authorName}</span>
+                                <span class="review-stars">${stars}</span>
+                            </div>
+                            <p class="review-comment">"${textContent}"</p>
+                            <span class="review-date">${new Date(rev.created_at).toLocaleDateString()}</span>
+                        </div>
+                    `;
+                }).join('');
+            } catch (e) {
+                console.error("Erreur chargement avis publics", e);
+            }
+        }
+
+        async function submitAvis(e) {
+            e.preventDefault();
+            const nom = document.getElementById('avisNom').value;
+            const note = document.getElementById('avisNote').value;
+            const commentaire = document.getElementById('avisCommentaire').value;
+            const btn = document.getElementById('btnSubmitAvis');
+
+            btn.innerText = "Envoi en cours...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/commentaires', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        auteur: nom,       
+                        nom: nom,          
+                        contenu: commentaire, 
+                        commentaire: commentaire, 
+                        note: note 
+                    })
+                });
+                const result = await res.json();
+
+                if (res.ok && result.success) {
+                    showToast("Votre avis a été soumis ! Il sera affiché après validation par l'administration.");
+                    document.getElementById('avisForm').reset();
+                    loadPublicReviews();
+                } else {
+                    alert("Erreur : " + (result.error || "Échec de l'envoi"));
+                }
+            } catch (err) {
+                alert("Erreur de connexion au serveur.");
+            } finally {
+                btn.innerText = "Soumettre mon avis";
+                btn.disabled = false;
+            }
+        }
+
+        window.onload = () => {
+            loadPublicReviews();
+        };
+
+        // Enregistrement du Service Worker pour la PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then((reg) => { console.log('Service Worker enregistré:', reg.scope); })
+                    .catch((err) => { console.log('Erreur enregistrement SW:', err); });
+            });
+        }
+    </script>
+</body>
+</html>

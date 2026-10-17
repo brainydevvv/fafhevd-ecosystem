@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administration Pro - FAFHEVD</title>
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --secondary: #f0b90b; /* Style Binance Gold pour les actions principales */
+            --secondary-hover: #d9a406;
+            --bg-color: #0b0e11; /* Thème sombre pro */
+            --card-bg: #1e2329;
+            --text-color: #eaecef;
+            --text-muted: #848e9c;
+            --sidebar-width: 260px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); display: flex; height: 100vh; overflow: hidden; }
+
+        /* --- LOGIN --- */
+        #login-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, #0b0e11 0%, #1e3a8a 100%);
+            display: flex; justify-content: center; align-items: center; z-index: 1000;
+        }
+        .login-card {
+            background: var(--card-bg); padding: 40px; border-radius: 12px; width: 100%; max-width: 400px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid #2b313a;
+        }
+        .login-card h2 { margin-bottom: 20px; color: var(--secondary); text-align: center; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 13px; color: var(--text-muted); }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%; padding: 11px; background: #0b0e11; border: 1px solid #2b313a; color: white; border-radius: 6px; font-size: 14px;
+        }
+        .form-group input:focus, .form-group textarea:focus { border-color: var(--secondary); outline: none; }
+
+        /* --- BOUTON Façon BINANCE (Anti Double-Clic & Loading Spinner) --- */
+        .btn { 
+            background: var(--secondary); color: #0b0e11; border: none; padding: 12px; width: 100%; 
+            border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; position: relative; text-align: center;
+        }
+        .btn:hover { background: var(--secondary-hover); }
+        .btn.loading { color: transparent; pointer-events: none; }
+        .btn.loading::after {
+            content: ""; position: absolute; width: 18px; height: 18px; top: 50%; left: 50%;
+            margin: -9px 0 0 -9px; border: 3px solid #0b0e11; border-top-color: transparent; border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* --- LAYOUT --- */
+        aside { width: var(--sidebar-width); background: #161a1e; border-right: 1px solid #2b313a; display: flex; flex-direction: column; }
+        .sidebar-header { padding: 20px; font-size: 17px; font-weight: bold; background: #1e2329; border-bottom: 1px solid #2b313a; color: var(--secondary); }
+        .sidebar-menu { list-style: none; padding: 15px 0; flex-grow: 1; overflow-y: auto; }
+        .sidebar-menu li { padding: 12px 20px; cursor: pointer; transition: 0.2s; font-size: 14px; color: var(--text-muted); display: flex; align-items: center; gap: 10px; }
+        .sidebar-menu li:hover, .sidebar-menu li.active { background: #2b313a; color: var(--secondary); }
+
+        main { flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto; }
+        
+        /* NAVBAR SUPÉRIEURE AVEC ICÔNES MESSAGES & NOTIFS */
+        header { 
+            background: var(--card-bg); padding: 15px 30px; border-bottom: 1px solid #2b313a; 
+            display: flex; justify-content: space-between; align-items: center; 
+        }
+        .navbar-icons { display: flex; gap: 20px; align-items: center; }
+        .icon-badge-container { position: relative; cursor: pointer; font-size: 20px; }
+        .badge-count { 
+            position: absolute; top: -6px; right: -10px; background: #ef4444; color: white; 
+            font-size: 10px; padding: 2px 6px; border-radius: 10px; font-weight: bold; 
+        }
+
+        .content-body { padding: 25px; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .card { background: var(--card-bg); padding: 25px; border-radius: 8px; border: 1px solid #2b313a; margin-bottom: 20px; }
+        .card h3 { margin-bottom: 15px; color: var(--secondary); font-size: 18px; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        table th, table td { padding: 12px; text-align: left; border-bottom: 1px solid #2b313a; font-size: 13px; }
+        table th { background: #161a1e; color: var(--text-muted); }
+        
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+        .badge.live { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        .badge.prog { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+        .badge.approuve { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+        .badge.pending { background: rgba(234, 179, 8, 0.2); color: #eab308; }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    </style>
+</head>
+<body>
+
+    <!-- CONNEXION -->
+    <div id="login-container">
+        <div class="login-card">
+            <h2>🔐 Admin FAFHEVD</h2>
+            <div id="login-error" style="color: #ef4444; font-size: 13px; margin-bottom: 10px; text-align: center;"></div>
+            <form id="login-form">
+                <div class="form-group">
+                    <label>ID Admin ou Téléphone</label>
+                    <input type="text" id="login-id" placeholder="Ex: f624122002 ou +243..." required>
+                </div>
+                <div class="form-group">
+                    <label>Mot de passe</label>
+                    <input type="password" id="login-pass" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="btn" id="login-btn">Se connecter</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- SIDEBAR & DASHBOARD -->
+    <aside id="sidebar" style="display:none;">
+        <div class="sidebar-header">⚡ FAFHEVD Control</div>
+        <ul class="sidebar-menu">
+            <li class="active" onclick="switchTab('tab-dashboard', this)">📊 Tableau de Bord & Abonnés</li>
+            <li onclick="switchTab('tab-streaming', this)">🎥 Mini TV & Studio Direct</li>
+            <li onclick="switchTab('tab-messages', this)">💬 Messages & Support</li>
+            <li onclick="switchTab('tab-avis', this)">⭐ Commentaires & Avis</li>
+            <li onclick="switchTab('tab-emplois', this)">💼 Offres d'Emploi</li>
+            <li onclick="logout()" style="color: #ef4444; margin-top: 40px;">🚪 Déconnexion</li>
+        </ul>
+    </aside>
+
+    <main id="main-dashboard" style="display:none;">
+        <header>
+            <h2 id="page-title" style="font-size: 20px; color: white;">Tableau de Bord</h2>
+            <div class="navbar-icons">
+                <!-- Icône Messages -->
+                <div class="icon-badge-container" onclick="switchTab('tab-messages', null)" title="Messages clients">
+                    💬 <span id="msg-badge-count" class="badge-count">0</span>
+                </div>
+                <!-- Icône Notifications -->
+                <div class="icon-badge-container" onclick="alert('Centre de notifications système actif.')" title="Notifications">
+                    🔔 <span id="notif-badge-count" class="badge-count">0</span>
+                </div>
+                <span id="admin-info-badge" style="font-weight: 600; color: var(--secondary); font-size: 14px;"></span>
+            </div>
+        </header>
+
+        <div class="content-body">
+
+            <!-- 1. TABLEAU DE BORD & ABONNÉS -->
+            <div id="tab-dashboard" class="tab-content active">
+                <div class="grid-2">
+                    <div class="card">
+                        <h3>👥 Gestion des Abonnés</h3>
+                        <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 10px;">Liste complète des utilisateurs abonnés et leur statut.</p>
+                        <table>
+                            <thead>
+                                <tr><th>Nom</th><th>Email</th><th>Téléphone</th><th>Statut</th></tr>
+                            </thead>
+                            <tbody id="abonnes-table-body"></tbody>
+                        </table>
+                    </div>
+                    <div class="card">
+                        <h3>📈 Statistiques de la Plateforme</h3>
+                        <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px;">
+                            <div style="background: #161a1e; padding: 15px; border-radius: 6px; display: flex; justify-content: space-between;">
+                                <span>Total Abonnés Actifs</span>
+                                <b id="stat-abonnes" style="color: var(--secondary);">0</b>
+                            </div>
+                            <div style="background: #161a1e; padding: 15px; border-radius: 6px; display: flex; justify-content: space-between;">
+                                <span>Vues Globales Mini TV</span>
+                                <b style="color: #3b82f6;">14,520</b>
+                            </div>
+                            <div style="background: #161a1e; padding: 15px; border-radius: 6px; display: flex; justify-content: space-between;">
+                                <span>Flux en Direct Actifs</span>
+                                <b style="color: #ef4444;">1 Live</b>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. MINI TV & STUDIO DIRECT (Webcam ou autre appareil + YouTube/HLS) -->
+            <div id="tab-streaming" class="tab-content">
+                <div class="grid-2">
+                    <!-- Studio Caméra Direct -->
+                    <div class="card">
+                        <h3>🔴 Studio Caméra Direct (Webcam)</h3>
+                        <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 10px;">Diffusez en direct depuis votre caméra ou appareil.</p>
+                        <div style="background: #000; border-radius: 6px; overflow: hidden; margin-bottom: 10px; height: 200px; display: flex; align-items: center; justify-content: center;">
+                            <video id="webcam-preview" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn" onclick="startWebcam()">Activer Caméra</button>
+                            <button class="btn" style="background: #ef4444; color: white;" onclick="stopWebcam()">Arrêter</button>
+                        </div>
+                    </div>
+
+                    <!-- Import ou Ajout de Streaming Externe (YouTube/HLS) -->
+                    <div class="card">
+                        <h3>📺 Programmer un Flux / Média TV</h3>
+                        <form id="media-form">
+                            <div class="form-group">
+                                <label>Titre de l'émission</label>
+                                <input type="text" id="media-title" required placeholder="Ex: Flash Info Spécial">
+                            </div>
+                            <div class="form-group">
+                                <label>Type de Média</label>
+                                <select id="media-type">
+                                    <option value="live">Direct (Streaming)</option>
+                                    <option value="video">Vidéo YouTube / Fichier</option>
+                                    <option value="podcast">Podcast Audio</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>URL du Média (YouTube, HLS, etc.)</label>
+                                <input type="text" id="media-url" required placeholder="https://youtube.com/watch?v=...">
+                            </div>
+                            <div class="form-group">
+                                <label>Heure Début & Fin (Grille TV)</label>
+                                <div style="display: flex; gap: 10px;">
+                                    <input type="datetime-local" id="media-start">
+                                    <input type="datetime-local" id="media-end">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn" onclick="submitWithLoading(event, 'media-form', saveMedia)">Publier le Programme</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Grille TV & Flux Actifs</h3>
+                    <table>
+                        <thead>
+                            <tr><th>Titre</th><th>Type</th><th>Statut</th><th>Horaires</th><th>Action</th></tr>
+                        </thead>
+                        <tbody id="media-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 3. MESSAGES & SUPPORT (Avec réponse intégrée) -->
+            <div id="tab-messages" class="tab-content">
+                <div class="card">
+                    <h3>💬 Boîte de Messages & Support Client</h3>
+                    <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 15px;">Répondez directement aux préoccupations des abonnés.</p>
+                    <table>
+                        <thead>
+                            <tr><th>Expéditeur / Contact</th><th>Message</th><th>Type</th><th>Action / Répondre</th></tr>
+                        </thead>
+                        <tbody id="messages-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 4. COMMENTAIRES & AVIS (Approuvé ou Pending) -->
+            <div id="tab-avis" class="tab-content">
+                <div class="card">
+                    <h3>⭐ Modération des Commentaires & Avis</h3>
+                    <table>
+                        <thead>
+                            <tr><th>Auteur</th><th>Cible</th><th>Contenu</th><th>Note</th><th>Statut Actuel</th><th>Action</th></tr>
+                        </thead>
+                        <tbody id="commentaires-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 5. OFFRES D'EMPLOI (Télétravail & Physique) -->
+            <div id="tab-emplois" class="tab-content">
+                <div class="grid-2">
+                    <div class="card">
+                        <h3>💼 Publier une Offre d'Emploi</h3>
+                        <form id="emploi-form">
+                            <div class="form-group">
+                                <label>Titre du Poste</label>
+                                <input type="text" id="emploi-titre" required placeholder="Ex: Développeur Fullstack / Community Manager">
+                            </div>
+                            <div class="form-group">
+                                <label>Type de Contrat & Mode</label>
+                                <select id="emploi-type">
+                                    <option value="Télétravail">Télétravail (Remote)</option>
+                                    <option value="Présentiel (Physique)">Présentiel (Bureau Bukavu)</option>
+                                    <option value="Hybride">Hybride</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Salaire & Moyen de Paiement</label>
+                                <input type="text" id="emploi-salaire" required placeholder="Ex: 500$ / mois (Mobile Money / Crypto / Virement)">
+                            </div>
+                            <div class="form-group">
+                                <label>Description des Tâches</label>
+                                <textarea id="emploi-desc" rows="3" required placeholder="Détails de l'offre..."></textarea>
+                            </div>
+                            <button type="submit" class="btn" onclick="submitWithLoading(event, 'emploi-form', saveEmploi)">Publier l'Offre</button>
+                        </form>
+                    </div>
+                    <div class="card">
+                        <h3>📋 Offres Publiées Actives</h3>
+                        <table>
+                            <thead>
+                                <tr><th>Poste</th><th>Mode</th><th>Salaire & Paiement</th></tr>
+                            </thead>
+                            <tbody id="emplois-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // --- ANIMATION BOUTON FAÇON BINANCE (Anti Double-clic & Spinner) ---
+        function submitWithLoading(event, formId, callback) {
+            event.preventDefault();
+            const btn = document.querySelector(`#${formId} button[type="submit"]`);
+            if (btn.classList.contains('loading')) return; // Bloque le double clic
+            
+            btn.classList.add('loading');
+            callback().finally(() => {
+                btn.classList.remove('loading');
+            });
+        }
+
+        function switchTab(tabId, element) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.sidebar-menu li').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            if(element) element.classList.add('active');
+        }
+
+        // --- AUTHENTIFICATION ---
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('login-btn');
+            btn.classList.add('loading');
+            
+            const identifier = document.getElementById('login-id').value;
+            const password = document.getElementById('login-pass').value;
+
+            try {
+                const res = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ identifier, password })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    localStorage.setItem('adminUser', JSON.stringify(data.admin));
+                    initDashboard(data.admin);
+                } else {
+                    document.getElementById('login-error').innerText = data.error;
+                }
+            } catch (err) {
+                document.getElementById('login-error').innerText = "Erreur réseau.";
+            } finally {
+                btn.classList.remove('loading');
+            }
+        });
+
+        function initDashboard(admin) {
+            document.getElementById('login-container').style.display = 'none';
+            document.getElementById('sidebar').style.display = 'flex';
+            document.getElementById('main-dashboard').style.display = 'flex';
+            document.getElementById('admin-info-badge').innerText = `${admin.nom} (${admin.role.toUpperCase()})`;
+            loadAllData();
+        }
+
+        window.onload = () => {
+            const saved = localStorage.getItem('adminUser');
+            if (saved) initDashboard(JSON.parse(saved));
+        };
+
+        function logout() {
+            localStorage.removeItem('adminUser');
+            location.reload();
+        }
+
+        // --- WEBCAM STREAMING DIRECT ---
+        let webcamStream = null;
+        async function startWebcam() {
+            try {
+                webcamStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                document.getElementById('webcam-preview').srcObject = webcamStream;
+                alert("Caméra activée avec succès pour le live !");
+            } catch(e) {
+                alert("Impossible d'accéder à la caméra : " + e.message);
+            }
+        }
+        function stopWebcam() {
+            if (webcamStream) {
+                webcamStream.getTracks().forEach(track => track.stop());
+                document.getElementById('webcam-preview').srcObject = null;
+                alert("Direct caméra arrêté.");
+            }
+        }
+
+        // --- CHARGEMENT DES DONNÉES ---
+        async function loadAllData() {
+            loadAbonnes();
+            loadMedia();
+            loadMessages();
+            loadCommentaires();
+            loadEmplois();
+        }
+
+        async function loadAbonnes() {
+            const res = await fetch('/api/abonnes');
+            const data = await res.json();
+            document.getElementById('stat-abonnes').innerText = data.length;
+            const tbody = document.getElementById('abonnes-table-body');
+            tbody.innerHTML = data.map(u => `<tr><td>${u.nom}</td><td>${u.email}</td><td>${u.telephone || '-'}</td><td><span class="badge approuve">${u.statut}</span></td></tr>`).join('');
+        }
+
+        async function loadMedia() {
+            const res = await fetch('/api/multimedia');
+            const data = await res.json();
+            document.getElementById('media-table-body').innerHTML = data.map(m => `
+                <tr><td><b>${m.titre}</b></td><td>${m.type_media}</td><td><span class="badge ${m.statut === 'en-direct' ? 'live' : 'prog'}">${m.statut}</span></td><td><small>${m.start_time || 'Immédiat'}</small></td><td><a href="${m.url_media}" target="_blank" style="color:var(--secondary);">Ouvrir</a></td></tr>
+            `).join('');
+        }
+
+        async function saveMedia() {
+            const payload = {
+                titre: document.getElementById('media-title').value,
+                type_media: document.getElementById('media-type').value,
+                url_media: document.getElementById('media-url').value,
+                start_time: document.getElementById('media-start').value,
+                end_time: document.getElementById('media-end').value,
+                statut: 'en-direct'
+            };
+            const res = await fetch('/api/multimedia', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+            const data = await res.json();
+            if(data.success) { alert(data.message); loadMedia(); document.getElementById('media-form').reset(); }
+        }
+
+        async function loadMessages() {
+            const res = await fetch('/api/messages');
+            const data = await res.json();
+            document.getElementById('msg-badge-count').innerText = data.length;
+            document.getElementById('messages-table-body').innerHTML = data.map(msg => `
+                <tr>
+                    <td><b>${msg.sender}</b><br><small>${msg.contact}</small></td>
+                    <td>${msg.message}</td>
+                    <td><span class="badge prog">${msg.sender_type}</span></td>
+                    <td><button class="btn" style="padding: 5px 10px; font-size:12px;" onclick="repondreMessage('${msg.contact}')">Répondre</button></td>
+                </tr>
+            `).join('');
+        }
+
+        async function repondreMessage(contact) {
+            const texte = prompt(`Répondre à l'abonné (${contact}) :`);
+            if (!texte) return;
+            const res = await fetch('/api/messages/repondre', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ receiver: contact, contact: contact, message: texte, sender_type: 'admin' })
+            });
+            const data = await res.json();
+            if(data.success) alert("Réponse envoyée !");
+        }
+
+        async function loadCommentaires() {
+            const res = await fetch('/api/commentaires');
+            const data = await res.json();
+            document.getElementById('commentaires-table-body').innerHTML = data.map(c => `
+                <tr>
+                    <td>${c.auteur}</td><td>${c.type_cible}</td><td>${c.contenu}</td><td>${c.note || '-'}/5</td>
+                    <td><span class="badge ${c.statut === 'approuve' ? 'approuve' : 'pending'}">${c.statut || 'pending'}</span></td>
+                    <td>
+                        <button class="btn" style="padding:4px 8px; font-size:11px; background:#22c55e;" onclick="changerStatutCom(${c.id}, 'approuve')">Approuver</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function changerStatutCom(id, statut) {
+            await fetch('/api/commentaires/statut', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id, statut }) });
+            loadCommentaires();
+        }
+
+        async function loadEmplois() {
+            const res = await fetch('/api/emplois');
+            const data = await res.json();
+            document.getElementById('emplois-table-body').innerHTML = data.map(e => `
+                <tr><td><b>${e.titre}</b><br><small>${e.description}</small></td><td><span class="badge prog">${e.type_contrat}</span></td><td><b>${e.salaire}</b></td></tr>
+            `).join('');
+        }
+
+        async function saveEmploi() {
+            const payload = {
+                titre: document.getElementById('emploi-titre').value,
+                type_contrat: document.getElementById('emploi-type').value,
+                lieu: 'Bukavu / Télétravail',
+                salaire: document.getElementById('emploi-salaire').value,
+                moyen_paiement: 'Mobile Money / Crypto / Virement',
+                description: document.getElementById('emploi-desc').value
+            };
+            const res = await fetch('/api/emplois', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+            const data = await res.json();
+            if(data.success) { alert(data.message); loadEmplois(); document.getElementById('emploi-form').reset(); }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Studio de Notifications & Dashboard - Fefhevd</title>
+    <!-- Intégration de Chart.js pour les graphiques dynamiques de portée -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Intégration de Socket.io client pour le temps réel -->
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        :root { --secondary: #f0b90b; --bg: #0b0e11; --card: #1e2329; --text: #eaecef; --text-muted: #848e9c; --border: #2b313a; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: var(--bg); color: var(--text); display: flex; flex-direction: column; min-height: 100vh; }
+
+        nav { background: var(--card); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
+        .nav-brand { color: var(--secondary); font-weight: bold; text-decoration: none; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+        .socket-indicator { font-size: 12px; padding: 4px 10px; border-radius: 12px; background: rgba(231, 76, 60, 0.2); color: #e74c3c; font-weight: 600; }
+        .socket-indicator.connected { background: rgba(46, 204, 113, 0.2); color: #2ecc71; }
+
+        .studio-container { max-width: 1200px; margin: 30px auto; padding: 0 20px; width: 100%; flex: 1; display: flex; flex-direction: column; gap: 30px; }
+        
+        /* En-tête du Studio & Statistiques Rapides */
+        .studio-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .studio-title h1 { color: #fff; font-size: 24px; font-weight: 700; margin-bottom: 5px; }
+        .studio-title p { color: var(--text-muted); font-size: 13.5px; }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; width: 100%; }
+        .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+        .stat-label { font-size: 12.5px; color: var(--text-muted); font-weight: 500; }
+        .stat-value { font-size: 26px; font-weight: 700; color: var(--secondary); }
+        .stat-trend { font-size: 11.5px; color: #2ecc71; }
+
+        /* Corps du Studio : Rédaction vs Graphiques / Historique */
+        .studio-grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: 25px; align-items: start; }
+        @media (max-width: 900px) { .studio-grid { grid-template-columns: 1fr; } }
+
+        .studio-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 25px; box-shadow: 0 8px 30px rgba(0,0,0,0.4); }
+        .studio-card h3 { color: var(--secondary); font-size: 18px; margin-bottom: 20px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; font-size: 12.5px; color: var(--text-muted); margin-bottom: 6px; font-weight: 500; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 11px 14px; background: #0b0e11; border: 1px solid var(--border); border-radius: 8px; color: #fff; font-size: 13.5px; transition: border-color 0.2s; }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color: var(--secondary); outline: none; }
+        .form-group textarea { resize: vertical; min-height: 100px; }
+
+        .row-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+
+        .btn-studio { background: var(--secondary); color: #000; border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; width: 100%; cursor: pointer; transition: opacity 0.2s; font-size: 14px; display: flex; justify-content: center; align-items: center; gap: 8px; }
+        .btn-studio:hover { opacity: 0.9; }
+
+        /* Section Graphique & Tableaux */
+        .chart-container { position: relative; height: 200px; width: 100%; margin-bottom: 20px; }
+        
+        .campaigns-table, .subscribers-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .campaigns-table th, .campaigns-table td, .subscribers-table th, .subscribers-table td { padding: 10px 12px; text-align: left; font-size: 12.5px; border-bottom: 1px solid var(--border); }
+        .campaigns-table th, .subscribers-table th { color: var(--text-muted); font-weight: 600; }
+        .campaigns-table td, .subscribers-table td { color: #fff; }
+        .badge-status { background: rgba(46, 204, 113, 0.15); color: #2ecc71; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+        .badge-status.scheduled { background: rgba(240, 185, 11, 0.15); color: var(--secondary); }
+
+        .section-box { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 25px; box-shadow: 0 8px 30px rgba(0,0,0,0.4); margin-top: 30px; }
+        .section-box h3 { color: var(--secondary); font-size: 18px; margin-bottom: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+
+        #studioToast { margin-top: 15px; padding: 12px; border-radius: 8px; text-align: center; font-size: 13px; font-weight: 600; display: none; }
+        .toast-success { background: rgba(46, 204, 113, 0.15); color: #2ecc71; border: 1px solid rgba(46, 204, 113, 0.3); }
+        .toast-error { background: rgba(231, 76, 60, 0.15); color: #e74c3c; border: 1px solid rgba(231, 76, 60, 0.3); }
+
+        footer { background: var(--card); padding: 20px; text-align: center; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 13px; margin-top: auto; }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <a href="index.html" class="nav-brand">
+            <svg style="width:20px; height:20px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.68v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg>
+            Fefhevd Notification Studio
+        </a>
+        <div id="socketStatusIndicator" class="socket-indicator">Connexion temps réel...</div>
+    </nav>
+
+    <div class="studio-container">
+        
+        <!-- En-tête et Compteurs Globaux en Temps Réel -->
+        <div class="studio-header">
+            <div class="studio-title">
+                <h1>Studio de Pilotage des Notifications & Live Analytics</h1>
+                <p>Diffusez vos alertes, suivez les réceptions en direct et gérez la liste complète des abonnés.</p>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-label">Total Abonnés Ciblés</span>
+                <span class="stat-value" id="statTotalSubscribers">---</span>
+                <span class="stat-trend">🟢 Enregistrés dans la DB</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">Vues / Reçus en Direct</span>
+                <span class="stat-value" id="statReachedCount">---</span>
+                <span class="stat-trend" id="statDeliveryRate">Taux de distribution actif</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">Campagnes Programmées</span>
+                <span class="stat-value" id="statScheduledCount">0</span>
+                <span class="stat-trend">⏳ En attente d'envoi</span>
+            </div>
+        </div>
+
+        <!-- Section Principale : Formulaire de Création & Analytique Graphique -->
+        <div class="studio-grid">
+            
+            <!-- Colonne 1 : Rédaction & Programmation -->
+            <div class="studio-card">
+                <h3>
+                    <svg style="width:18px; height:18px; fill:currentColor;" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                    Rédiger & Programmer
+                </h3>
+                
+                <form id="studioForm" onsubmit="handleStudioSubmit(event)">
+                    <div class="form-group">
+                        <label>Titre de l'alerte *</label>
+                        <input type="text" id="studioTitle" required placeholder="Ex: Alerte Direct / Nouvelle Campagne">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Message de la notification *</label>
+                        <textarea id="studioMessage" required placeholder="Détaillez votre annonce ici..."></textarea>
+                    </div>
+
+                    <div class="row-inputs">
+                        <div class="form-group">
+                            <label>Mode d'envoi</label>
+                            <select id="studioMode" onchange="toggleScheduleInput()">
+                                <option value="now">Envoyer immédiatement</option>
+                                <option value="schedule">Programmer pour plus tard</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="scheduleDateGroup" style="display: none;">
+                            <label>Date et Heure</label>
+                            <input type="datetime-local" id="studioScheduleTime">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Segment de destination</label>
+                        <select id="studioTarget">
+                            <option value="all">Tous les abonnés enregistrés</option>
+                            <option value="active">Membres actifs uniquement</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn-studio" id="btnStudioAction">
+                        <svg style="width:16px; height:16px; fill:#000;" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                        Diffuser / Enregistrer la campagne
+                    </button>
+                </form>
+
+                <div id="studioToast"></div>
+            </div>
+
+            <!-- Colonne 2 : Graphiques d'Analyse & Historique en Direct -->
+            <div class="studio-card">
+                <h3>
+                    <svg style="width:18px; height:18px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+                    Analytique & Portée en Direct
+                </h3>
+                
+                <!-- Graphique Chart.js de l'audience atteinte -->
+                <div class="chart-container">
+                    <canvas id="reachChart"></canvas>
+                </div>
+
+                <h4 style="color: var(--text); font-size: 13.5px; margin-top: 15px; margin-bottom: 8px;">Dernières diffusions du Studio</h4>
+                <div style="overflow-x: auto;">
+                    <table class="campaigns-table">
+                        <thead>
+                            <tr>
+                                <th>Titre</th>
+                                <th>Cible</th>
+                                <th>Portée / Vues</th>
+                                <th>Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody id="campaignsTableBody">
+                            <tr>
+                                <td colspan="4" style="text-align: center; color: var(--text-muted);">Chargement de l'historique...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Section Supplémentaire : Liste de tous les abonnés de la Base de Données -->
+        <div class="section-box">
+            <h3>
+                <svg style="width:18px; height:18px; fill:currentColor;" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+                Liste des Abonnés (Base de Données en Direct)
+            </h3>
+            <div style="overflow-x: auto;">
+                <table class="subscribers-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nom</th>
+                            <th>Email</th>
+                            <th>Téléphone</th>
+                            <th>Statut</th>
+                            <th>Date d'inscription</th>
+                        </tr>
+                    </thead>
+                    <tbody id="subscribersTableBody">
+                        <tr>
+                            <td colspan="6" style="text-align: center; color: var(--text-muted);">Chargement des abonnés...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <footer>&copy; 2026 Fefhevd - Studio de Notification Sécurisé</footer>
+
+    <script>
+        const socket = io();
+        let reachChartInstance = null;
+
+        // Gestion de la connexion WebSocket
+        socket.on('connect', () => {
+            const indicator = document.getElementById('socketStatusIndicator');
+            indicator.innerText = "Connecté en temps réel";
+            indicator.className = "socket-indicator connected";
+            socket.emit('user_join', { name: 'Admin Studio Dashboard', email: 'admin@fafhevd.com' });
+        });
+
+        socket.on('disconnect', () => {
+            const indicator = document.getElementById('socketStatusIndicator');
+            indicator.innerText = "Déconnecté";
+            indicator.className = "socket-indicator";
+        });
+
+        // Écoute des signaux en direct pour actualiser automatiquement les données et graphiques
+        socket.on('notification_received', (data) => {
+            console.log("Signal de notification reçu en direct :", data);
+            loadStudioData();
+            loadSubscribersList();
+        });
+
+        socket.on('notification_stat_updated', (data) => {
+            loadStudioData();
+        });
+
+        // Basculer l'affichage du champ de date si "Programmer" est sélectionné
+        function toggleScheduleInput() {
+            const mode = document.getElementById('studioMode').value;
+            const group = document.getElementById('scheduleDateGroup');
+            group.style.display = (mode === 'schedule') ? 'block' : 'none';
+        }
+
+        // Initialiser le graphique Chart.js
+        function initReachChart(labels, dataValues) {
+            const ctx = document.getElementById('reachChart').getContext('2d');
+            if (reachChartInstance) {
+                reachChartInstance.destroy();
+            }
+
+            reachChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels.length ? labels : ['Aucune donnée'],
+                    datasets: [{
+                        label: 'Vues / Personnes touchées',
+                        data: dataValues.length ? dataValues : [0],
+                        backgroundColor: 'rgba(240, 185, 11, 0.7)',
+                        borderColor: '#f0b90b',
+                        borderWidth: 1,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(43, 49, 58, 0.5)' },
+                            ticks: { color: '#848e9c', font: { size: 11 } }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#848e9c', font: { size: 11 } }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Charger les statistiques et l'historique depuis le serveur
+        async function loadStudioData() {
+            try {
+                const res = await fetch('/api/admin/studio/analytics');
+                const data = await res.json();
+
+                if (res.ok) {
+                    document.getElementById('statTotalSubscribers').innerText = data.totalSubscribers || 0;
+                    document.getElementById('statReachedCount').innerText = data.lastReachedCount || 0;
+                    document.getElementById('statScheduledCount').innerText = data.scheduledCount || 0;
+
+                    // Mettre à jour le tableau des campagnes
+                    const tbody = document.getElementById('campaignsTableBody');
+                    if (data.campaigns && data.campaigns.length > 0) {
+                        tbody.innerHTML = data.campaigns.map(c => `
+                            <tr>
+                                <td>${c.title}</td>
+                                <td>${c.target === 'all' ? 'Tous' : 'Actifs'}</td>
+                                <td><strong>${c.reachedCount}</strong> vues</td>
+                                <td><span class="badge-status ${c.status === 'scheduled' ? 'scheduled' : ''}">${c.status === 'scheduled' ? 'Programmé' : 'Diffusé'}</span></td>
+                            </tr>
+                        `).join('');
+
+                        // Mettre à jour le graphique avec les 5 dernières campagnes
+                        const chartLabels = data.campaigns.slice(0, 5).map(c => c.title.substring(0, 12) + '...');
+                        const chartValues = data.campaigns.slice(0, 5).map(c => c.reachedCount);
+                        initReachChart(chartLabels, chartValues);
+                    } else {
+                        tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Aucune campagne enregistrée.</td></tr>`;
+                        initReachChart([], []);
+                    }
+                }
+            } catch (e) {
+                console.error("Erreur chargement studio", e);
+            }
+        }
+
+        // Charger la liste de tous les abonnés depuis la base de données
+        async function loadSubscribersList() {
+            try {
+                const res = await fetch('/api/abonnes');
+                const rows = await res.json();
+                const tbody = document.getElementById('subscribersTableBody');
+                
+                if (res.ok) {
+                    if (rows.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Aucun abonné enregistré pour le moment.</td></tr>`;
+                        return;
+                    }
+                    tbody.innerHTML = rows.map(sub => `
+                        <tr>
+                            <td>#${sub.id}</td>
+                            <td>${sub.nom}</td>
+                            <td>${sub.email}</td>
+                            <td>${sub.telephone || 'N/A'}</td>
+                            <td><span class="badge-status">${sub.statut || 'actif'}</span></td>
+                            <td>${new Date(sub.created_at).toLocaleString()}</td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (e) {
+                console.error("Erreur chargement abonnés", e);
+            }
+        }
+
+        // Soumettre le formulaire du Studio (Diffusion immédiate ou Programmation)
+        async function handleStudioSubmit(event) {
+            event.preventDefault();
+            const title = document.getElementById('studioTitle').value;
+            const message = document.getElementById('studioMessage').value;
+            const mode = document.getElementById('studioMode').value;
+            const scheduleTime = document.getElementById('studioScheduleTime').value;
+            const target = document.getElementById('studioTarget').value;
+            
+            const btn = document.getElementById('btnStudioAction');
+            const toast = document.getElementById('studioToast');
+
+            btn.disabled = true;
+            btn.innerText = "Traitement en cours...";
+
+            try {
+                const response = await fetch('/api/admin/studio/broadcast', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, message, mode, scheduleTime, target })
+                });
+
+                const result = await response.json();
+                toast.style.display = 'block';
+
+                if (response.ok) {
+                    toast.className = "toast-success";
+                    toast.innerText = mode === 'schedule' 
+                        ? `Campagne programmée avec succès pour ${scheduleTime} !` 
+                        : `Campagne diffusée ! ${result.reachedCount} abonnés touchés en direct.`;
+                    
+                    document.getElementById('studioForm').reset();
+                    toggleScheduleInput();
+                    loadStudioData();
+                    loadSubscribersList();
+                } else {
+                    toast.className = "toast-error";
+                    toast.innerText = "Erreur : " + (result.error || "Échec de l'opération");
+                }
+            } catch (err) {
+                toast.style.display = 'block';
+                toast.className = "toast-error";
+                toast.innerText = "Impossible de joindre le serveur du Studio.";
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<svg style="width:16px; height:16px; fill:#000;" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg> Diffuser / Enregistrer la campagne`;
+                setTimeout(() => { toast.style.display = 'none'; }, 5000);
+            }
+        }
+
+        window.onload = () => {
+            loadStudioData();
+            loadSubscribersList();
+        };
+    </script>
+</body>
+</html>
