@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Studio de Notifications & Dashboard - Fefhevd</title>
+    <title>Studio de Notifications & Dashboard - FAFHEVD</title>
     <!-- Intégration de Chart.js pour les graphiques dynamiques de portée -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Intégration de Socket.io client pour le temps réel -->
@@ -11,180 +11,261 @@
     <style>
         :root { --secondary: #f0b90b; --bg: #0b0e11; --card: #1e2329; --text: #eaecef; --text-muted: #848e9c; --border: #2b313a; }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background: var(--bg); color: var(--text); display: flex; flex-direction: column; min-height: 100vh; }
+        body { background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
 
-        nav { background: var(--card); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
-        .nav-brand { color: var(--secondary); font-weight: bold; text-decoration: none; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+        /* SIDEBAR DE NAVIGATION */
+        aside { 
+            width: 260px; background: #161a1e; border-right: 1px solid var(--border); 
+            display: flex; flex-direction: column; flex-shrink: 0; height: 100vh; position: relative; z-index: 100;
+            transition: transform 0.3s ease;
+        }
+        .sidebar-header { padding: 20px; font-weight: bold; color: var(--secondary); background: var(--card); border-bottom: 1px solid var(--border); font-size: 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .sidebar-menu { list-style: none; padding: 15px 0; overflow-y: auto; flex-grow: 1; }
+        .sidebar-menu li { padding: 12px 20px; cursor: pointer; color: var(--text-muted); font-size: 14px; transition: all 0.2s; }
+        .sidebar-menu li:hover, .sidebar-menu li.active { background: var(--border); color: var(--secondary); }
+
+        /* MAIN CONTENT AREA */
+        main { flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto; height: 100vh; }
+        
+        header { 
+            background: var(--card); padding: 15px 20px; border-bottom: 1px solid var(--border); 
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; 
+        }
+        .header-left { display: flex; align-items: center; gap: 15px; }
+        .menu-toggle { background: none; border: none; color: white; font-size: 22px; cursor: pointer; display: none; }
+        
         .socket-indicator { font-size: 12px; padding: 4px 10px; border-radius: 12px; background: rgba(231, 76, 60, 0.2); color: #e74c3c; font-weight: 600; }
         .socket-indicator.connected { background: rgba(46, 204, 113, 0.2); color: #2ecc71; }
 
-        .studio-container { max-width: 1200px; margin: 30px auto; padding: 0 20px; width: 100%; flex: 1; display: flex; flex-direction: column; gap: 30px; }
+        .studio-container { max-width: 1200px; margin: 0 auto; padding: 20px; width: 100%; display: flex; flex-direction: column; gap: 25px; }
         
         /* En-tête du Studio & Statistiques Rapides */
         .studio-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
-        .studio-title h1 { color: #fff; font-size: 24px; font-weight: 700; margin-bottom: 5px; }
-        .studio-title p { color: var(--text-muted); font-size: 13.5px; }
+        .studio-title h1 { color: #fff; font-size: 20px; font-weight: 700; margin-bottom: 5px; }
+        .studio-title p { color: var(--text-muted); font-size: 13px; }
 
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; width: 100%; }
-        .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
-        .stat-label { font-size: 12.5px; color: var(--text-muted); font-weight: 500; }
-        .stat-value { font-size: 26px; font-weight: 700; color: var(--secondary); }
-        .stat-trend { font-size: 11.5px; color: #2ecc71; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; width: 100%; }
+        .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+        .stat-label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+        .stat-value { font-size: 24px; font-weight: 700; color: var(--secondary); }
+        .stat-trend { font-size: 11px; color: #2ecc71; }
 
         /* Corps du Studio : Rédaction vs Graphiques / Historique */
-        .studio-grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: 25px; align-items: start; }
-        @media (max-width: 900px) { .studio-grid { grid-template-columns: 1fr; } }
+        .studio-grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: 20px; align-items: start; }
+        
+        .studio-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; box-shadow: 0 8px 30px rgba(0,0,0,0.4); }
+        .studio-card h3 { color: var(--secondary); font-size: 16px; margin-bottom: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
 
-        .studio-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 25px; box-shadow: 0 8px 30px rgba(0,0,0,0.4); }
-        .studio-card h3 { color: var(--secondary); font-size: 18px; margin-bottom: 20px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-
-        .form-group { margin-bottom: 18px; }
-        .form-group label { display: block; font-size: 12.5px; color: var(--text-muted); margin-bottom: 6px; font-weight: 500; }
-        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 11px 14px; background: #0b0e11; border: 1px solid var(--border); border-radius: 8px; color: #fff; font-size: 13.5px; transition: border-color 0.2s; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 5px; font-weight: 500; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px 12px; background: #0b0e11; border: 1px solid var(--border); border-radius: 8px; color: #fff; font-size: 13px; transition: border-color 0.2s; }
         .form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color: var(--secondary); outline: none; }
-        .form-group textarea { resize: vertical; min-height: 100px; }
+        .form-group textarea { resize: vertical; min-height: 90px; }
 
         .row-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
 
-        .btn-studio { background: var(--secondary); color: #000; border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; width: 100%; cursor: pointer; transition: opacity 0.2s; font-size: 14px; display: flex; justify-content: center; align-items: center; gap: 8px; }
+        .btn-studio { background: var(--secondary); color: #000; border: none; padding: 11px 16px; border-radius: 8px; font-weight: bold; width: 100%; cursor: pointer; transition: opacity 0.2s; font-size: 13.5px; display: flex; justify-content: center; align-items: center; gap: 8px; }
         .btn-studio:hover { opacity: 0.9; }
 
         /* Section Graphique & Tableaux */
-        .chart-container { position: relative; height: 200px; width: 100%; margin-bottom: 20px; }
+        .chart-container { position: relative; height: 190px; width: 100%; margin-bottom: 15px; }
         
-        .campaigns-table, .subscribers-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .campaigns-table, .subscribers-table { width: 100%; border-collapse: collapse; margin-top: 10px; min-width: 450px; }
         .campaigns-table th, .campaigns-table td, .subscribers-table th, .subscribers-table td { padding: 10px 12px; text-align: left; font-size: 12.5px; border-bottom: 1px solid var(--border); }
-        .campaigns-table th, .subscribers-table th { color: var(--text-muted); font-weight: 600; }
+        .campaigns-table th, .subscribers-table th { color: var(--text-muted); font-weight: 600; background: #161a1e; }
         .campaigns-table td, .subscribers-table td { color: #fff; }
         .badge-status { background: rgba(46, 204, 113, 0.15); color: #2ecc71; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
         .badge-status.scheduled { background: rgba(240, 185, 11, 0.15); color: var(--secondary); }
 
-        .section-box { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 25px; box-shadow: 0 8px 30px rgba(0,0,0,0.4); margin-top: 30px; }
-        .section-box h3 { color: var(--secondary); font-size: 18px; margin-bottom: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .section-box { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; box-shadow: 0 8px 30px rgba(0,0,0,0.4); margin-top: 25px; }
+        .section-box h3 { color: var(--secondary); font-size: 16px; margin-bottom: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
 
         #studioToast { margin-top: 15px; padding: 12px; border-radius: 8px; text-align: center; font-size: 13px; font-weight: 600; display: none; }
         .toast-success { background: rgba(46, 204, 113, 0.15); color: #2ecc71; border: 1px solid rgba(46, 204, 113, 0.3); }
         .toast-error { background: rgba(231, 76, 60, 0.15); color: #e74c3c; border: 1px solid rgba(231, 76, 60, 0.3); }
 
-        footer { background: var(--card); padding: 20px; text-align: center; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 13px; margin-top: auto; }
+        footer { background: var(--card); padding: 15px; text-align: center; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 12px; margin-top: auto; }
+
+        /* --- MEDIA QUERIES (RESPONSIVE) --- */
+        @media (max-width: 1024px) {
+            .studio-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 900px) {
+            aside { 
+                position: fixed; left: -260px; top: 0; bottom: 0; 
+                transition: transform 0.3s ease; box-shadow: 5px 0 15px rgba(0,0,0,0.5);
+            }
+            aside.mobile-open { transform: translateX(260px); }
+            .menu-toggle { display: block; }
+        }
     </style>
 </head>
 <body>
 
-    <nav>
-        <a href="index.html" class="nav-brand">
-            <svg style="width:20px; height:20px; fill:currentColor;" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.68v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg>
-            Fefhevd Notification Studio
-        </a>
-        <div id="socketStatusIndicator" class="socket-indicator">Connexion temps réel...</div>
-    </nav>
-
-    <div class="studio-container">
-        
-        <!-- En-tête et Compteurs Globaux en Temps Réel -->
-        <div class="studio-header">
-            <div class="studio-title">
-                <h1>Studio de Pilotage des Notifications & Live Analytics</h1>
-                <p>Diffusez vos alertes, suivez les réceptions en direct et gérez la liste complète des abonnés.</p>
-            </div>
+    <!-- BARRE LATÉRALE DE NAVIGATION -->
+    <aside id="sidebar">
+        <div class="sidebar-header">
+            <span>⚡ FAFHEVD Studio</span>
+            <button class="menu-toggle" onclick="toggleSidebar()" style="font-size:18px;">✕</button>
         </div>
+        <ul class="sidebar-menu">
+            <li onclick="location.href='dashboard.html'">📊 Tableau de Bord & Dons</li>
+            <li onclick="location.href='streaming.html'">🎥 Mini TV & Studio Direct</li>
+            <li class="active">🔔 Studio de Notifications</li>
+            <li onclick="location.href='dons.html'">🎁 Campagnes & Collecte</li>
+            <li onclick="location.href='messages.html'">💬 Messages & Support</li>
+            <li onclick="location.href='avis.html'">⭐ Commentaires & Avis</li>
+            <li onclick="location.href='emplois.html'">💼 Offres d'Emploi</li>
+            <li onclick="localStorage.clear(); location.href='login.html'" style="color:#ef4444; margin-top:30px;">🚪 Déconnexion</li>
+        </ul>
+    </aside>
 
-        <div class="stats-grid">
-            <div class="stat-card">
-                <span class="stat-label">Total Abonnés Ciblés</span>
-                <span class="stat-value" id="statTotalSubscribers">---</span>
-                <span class="stat-trend">🟢 Enregistrés dans la DB</span>
+    <main>
+        <header>
+            <div class="header-left">
+                <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+                <h2 style="font-size: 16px; color: white;">Fefhevd Notification Studio</h2>
             </div>
-            <div class="stat-card">
-                <span class="stat-label">Vues / Reçus en Direct</span>
-                <span class="stat-value" id="statReachedCount">---</span>
-                <span class="stat-trend" id="statDeliveryRate">Taux de distribution actif</span>
-            </div>
-            <div class="stat-card">
-                <span class="stat-label">Campagnes Programmées</span>
-                <span class="stat-value" id="statScheduledCount">0</span>
-                <span class="stat-trend">⏳ En attente d'envoi</span>
-            </div>
-        </div>
+            <div id="socketStatusIndicator" class="socket-indicator">Connexion temps réel...</div>
+        </header>
 
-        <!-- Section Principale : Formulaire de Création & Analytique Graphique -->
-        <div class="studio-grid">
+        <div class="studio-container">
             
-            <!-- Colonne 1 : Rédaction & Programmation -->
-            <div class="studio-card">
-                <h3>
-                    <svg style="width:18px; height:18px; fill:currentColor;" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-                    Rédiger & Programmer
-                </h3>
+            <!-- En-tête et Compteurs Globaux en Temps Réel -->
+            <div class="studio-header">
+                <div class="studio-title">
+                    <h1>Studio de Pilotage des Notifications & Live Analytics</h1>
+                    <p>Diffusez vos alertes, suivez les réceptions en direct et gérez la liste complète des abonnés[cite: 4].</p>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-label">Total Abonnés Ciblés</span>
+                    <span class="stat-value" id="statTotalSubscribers">---</span>
+                    <span class="stat-trend">🟢 Enregistrés dans la DB</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Vues / Reçus en Direct</span>
+                    <span class="stat-value" id="statReachedCount">---</span>
+                    <span class="stat-trend" id="statDeliveryRate">Taux de distribution actif</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Campagnes Programmées</span>
+                    <span class="stat-value" id="statScheduledCount">0</span>
+                    <span class="stat-trend">⏳ En attente d'envoi</span>
+                </div>
+            </div>
+
+            <!-- Section Principale : Formulaire de Création & Analytique Graphique -->
+            <div class="studio-grid">
                 
-                <form id="studioForm" onsubmit="handleStudioSubmit(event)">
-                    <div class="form-group">
-                        <label>Titre de l'alerte *</label>
-                        <input type="text" id="studioTitle" required placeholder="Ex: Alerte Direct / Nouvelle Campagne">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Message de la notification *</label>
-                        <textarea id="studioMessage" required placeholder="Détaillez votre annonce ici..."></textarea>
-                    </div>
-
-                    <div class="row-inputs">
+                <!-- Colonne 1 : Rédaction & Programmation -->
+                <div class="studio-card">
+                    <h3>
+                        <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                        Rédiger & Programmer
+                    </h3>
+                    
+                    <form id="studioForm" onsubmit="handleStudioSubmit(event)">
                         <div class="form-group">
-                            <label>Mode d'envoi</label>
-                            <select id="studioMode" onchange="toggleScheduleInput()">
-                                <option value="now">Envoyer immédiatement</option>
-                                <option value="schedule">Programmer pour plus tard</option>
+                            <label>Titre de l'alerte *</label>
+                            <input type="text" id="studioTitle" required placeholder="Ex: Alerte Direct / Nouvelle Campagne">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Message de la notification *</label>
+                            <textarea id="studioMessage" required placeholder="Détaillez votre annonce ici..."></textarea>
+                        </div>
+
+                        <div class="row-inputs">
+                            <div class="form-group">
+                                <label>Mode d'envoi</label>
+                                <select id="studioMode" onchange="toggleScheduleInput()">
+                                    <option value="now">Envoyer immédiatement</option>
+                                    <option value="schedule">Programmer pour plus tard</option>
+                                </select>
+                            </div>
+                            <div class="form-group" id="scheduleDateGroup" style="display: none;">
+                                <label>Date et Heure</label>
+                                <input type="datetime-local" id="studioScheduleTime">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Segment de destination</label>
+                            <select id="studioTarget">
+                                <option value="all">Tous les abonnés enregistrés</option>
+                                <option value="active">Membres actifs uniquement</option>
                             </select>
                         </div>
-                        <div class="form-group" id="scheduleDateGroup" style="display: none;">
-                            <label>Date et Heure</label>
-                            <input type="datetime-local" id="studioScheduleTime">
-                        </div>
-                    </div>
 
-                    <div class="form-group">
-                        <label>Segment de destination</label>
-                        <select id="studioTarget">
-                            <option value="all">Tous les abonnés enregistrés</option>
-                            <option value="active">Membres actifs uniquement</option>
-                        </select>
-                    </div>
+                        <button type="submit" class="btn-studio" id="btnStudioAction">
+                            <svg style="width:14px; height:14px; fill:#000;" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                            Diffuser / Enregistrer la campagne
+                        </button>
+                    </form>
 
-                    <button type="submit" class="btn-studio" id="btnStudioAction">
-                        <svg style="width:16px; height:16px; fill:#000;" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-                        Diffuser / Enregistrer la campagne
-                    </button>
-                </form>
-
-                <div id="studioToast"></div>
-            </div>
-
-            <!-- Colonne 2 : Graphiques d'Analyse & Historique en Direct -->
-            <div class="studio-card">
-                <h3>
-                    <svg style="width:18px; height:18px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
-                    Analytique & Portée en Direct
-                </h3>
-                
-                <!-- Graphique Chart.js de l'audience atteinte -->
-                <div class="chart-container">
-                    <canvas id="reachChart"></canvas>
+                    <div id="studioToast"></div>
                 </div>
 
-                <h4 style="color: var(--text); font-size: 13.5px; margin-top: 15px; margin-bottom: 8px;">Dernières diffusions du Studio</h4>
-                <div style="overflow-x: auto;">
-                    <table class="campaigns-table">
+                <!-- Colonne 2 : Graphiques d'Analyse & Historique en Direct -->
+                <div class="studio-card">
+                    <h3>
+                        <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+                        Analytique & Portée en Direct
+                    </h3>
+                    
+                    <!-- Graphique Chart.js de l'audience atteinte -->
+                    <div class="chart-container">
+                        <canvas id="reachChart"></canvas>
+                    </div>
+
+                    <h4 style="color: var(--text); font-size: 13px; margin-top: 15px; margin-bottom: 8px;">Dernières diffusions du Studio</h4>
+                    <div class="table-responsive">
+                        <table class="campaigns-table">
+                            <thead>
+                                <tr>
+                                    <th>Titre</th>
+                                    <th>Cible</th>
+                                    <th>Portée / Vues</th>
+                                    <th>Statut</th>
+                                </tr>
+                            </thead>
+                            <tbody id="campaignsTableBody">
+                                <tr>
+                                    <td colspan="4" style="text-align: center; color: var(--text-muted);">Chargement de l'historique...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Section Supplémentaire : Liste de tous les abonnés de la Base de Données -->
+            <div class="section-box">
+                <h3>
+                    <svg style="width:16px; height:16px; fill:currentColor;" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+                    Liste des Abonnés (Base de Données en Direct)
+                </h3>
+                <div class="table-responsive">
+                    <table class="subscribers-table">
                         <thead>
                             <tr>
-                                <th>Titre</th>
-                                <th>Cible</th>
-                                <th>Portée / Vues</th>
+                                <th>ID</th>
+                                <th>Nom</th>
+                                <th>Email</th>
+                                <th>Téléphone</th>
                                 <th>Statut</th>
+                                <th>Date d'inscription</th>
                             </tr>
                         </thead>
-                        <tbody id="campaignsTableBody">
+                        <tbody id="subscribersTableBody">
                             <tr>
-                                <td colspan="4" style="text-align: center; color: var(--text-muted);">Chargement de l'historique...</td>
+                                <td colspan="6" style="text-align: center; color: var(--text-muted);">Chargement des abonnés...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -193,38 +274,14 @@
 
         </div>
 
-        <!-- Section Supplémentaire : Liste de tous les abonnés de la Base de Données -->
-        <div class="section-box">
-            <h3>
-                <svg style="width:18px; height:18px; fill:currentColor;" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
-                Liste des Abonnés (Base de Données en Direct)
-            </h3>
-            <div style="overflow-x: auto;">
-                <table class="subscribers-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Nom</th>
-                            <th>Email</th>
-                            <th>Téléphone</th>
-                            <th>Statut</th>
-                            <th>Date d'inscription</th>
-                        </tr>
-                    </thead>
-                    <tbody id="subscribersTableBody">
-                        <tr>
-                            <td colspan="6" style="text-align: center; color: var(--text-muted);">Chargement des abonnés...</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-    </div>
-
-    <footer>&copy; 2026 Fefhevd - Studio de Notification Sécurisé</footer>
+        <footer>&copy; 2026 Fefhevd - Studio de Notification Sécurisé[cite: 4]</footer>
+    </main>
 
     <script>
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('mobile-open');
+        }
+
         const socket = io();
         let reachChartInstance = null;
 
@@ -411,7 +468,7 @@
                 toast.innerText = "Impossible de joindre le serveur du Studio.";
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = `<svg style="width:16px; height:16px; fill:#000;" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg> Diffuser / Enregistrer la campagne`;
+                btn.innerHTML = `<svg style="width:14px; height:14px; fill:#000;" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg> Diffuser / Enregistrer la campagne`;
                 setTimeout(() => { toast.style.display = 'none'; }, 5000);
             }
         }

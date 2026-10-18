@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Studio Admin - Partenariats & Investissements</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        :root { --secondary: #f0b90b; --bg: #0b0e11; --card: #1e2329; --text: #eaecef; --text-muted: #848e9c; --border: #2b313a; --green: #2ecc71; --whatsapp: #25d366; --gmail: #ea4335; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
+
+        /* SIDEBAR & RESPONSIVE MENU */
+        aside { 
+            width: 260px; background: #161a1e; border-right: 1px solid var(--border); 
+            display: flex; flex-direction: column; flex-shrink: 0; height: 100vh; 
+            position: fixed; top: 0; left: 0; z-index: 1000; transition: transform 0.3s ease;
+        }
+        .sidebar-header { padding: 20px; font-weight: bold; color: var(--secondary); background: var(--card); border-bottom: 1px solid var(--border); font-size: 16px; display: flex; justify-content: space-between; align-items: center; }
+        .sidebar-menu { list-style: none; padding: 15px 0; overflow-y: auto; flex-grow: 1; }
+        .sidebar-menu li { padding: 12px 20px; cursor: pointer; color: var(--text-muted); font-size: 14px; transition: 0.2s; }
+        .sidebar-menu li:hover, .sidebar-menu li.active { background: var(--border); color: var(--secondary); }
+
+        /* MAIN LAYOUT */
+        main { flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto; height: 100vh; margin-left: 260px; width: calc(100% - 260px); transition: margin 0.3s ease, width 0.3s ease; }
+        header { background: var(--card); padding: 15px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 99; }
+        header h2 { font-size: 15px; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        .menu-toggle { display: none; background: none; border: none; color: var(--secondary); font-size: 22px; cursor: pointer; }
+
+        .admin-container { padding: 20px; max-width: 1200px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 20px; }
+        .section-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); overflow: hidden; }
+        .section-card h3 { color: var(--secondary); font-size: 15px; margin-bottom: 15px; }
+
+        .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        table { width: 100%; border-collapse: collapse; min-width: 700px; }
+        th, td { padding: 10px 12px; text-align: left; font-size: 13px; border-bottom: 1px solid var(--border); }
+        th { color: var(--text-muted); background: #161a1e; font-weight: 600; }
+
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; background: rgba(240,185,11,0.15); color: var(--secondary); display: inline-block; }
+        .badge.green { background: rgba(46, 204, 113, 0.15); color: var(--green); }
+        .badge.channel-wa { background: rgba(37, 211, 102, 0.15); color: var(--whatsapp); }
+        .badge.channel-gmail { background: rgba(234, 67, 53, 0.15); color: var(--gmail); }
+
+        .btn-reply { background: var(--secondary); color: #000; border: none; padding: 6px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 12px; white-space: nowrap; }
+
+        /* MODAL RESPONSIVE */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 2000; padding: 15px; }
+        .modal-box { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; width: 100%; max-width: 550px; }
+        .modal-box h3 { color: var(--secondary); margin-bottom: 10px; font-size: 16px; }
+        .channel-info { font-size: 12.5px; margin-bottom: 15px; padding: 8px 12px; border-radius: 6px; background: rgba(255,255,255,0.05); }
+        .modal-box textarea { width: 100%; height: 130px; background: var(--bg); border: 1px solid var(--border); color: #fff; padding: 10px; border-radius: 6px; font-size: 13px; margin-bottom: 15px; resize: vertical; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+        .btn-cancel { background: #e74c3c; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+
+        /* BREAKPOINTS RESPONSIVE (Tablettes & Mobiles) */
+        @media (max-width: 900px) {
+            aside { transform: translateX(-100%); }
+            aside.active { transform: translateX(0); }
+            main { margin-left: 0; width: 100%; }
+            .menu-toggle { display: inline-block; }
+        }
+
+        @media (max-width: 480px) {
+            .admin-container { padding: 10px; }
+            header h2 { font-size: 13px; }
+            .section-card { padding: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+    <aside id="sidebar">
+        <div class="sidebar-header">
+            <span>FAFHEVD Admin</span>
+            <span onclick="toggleSidebar()" style="cursor: pointer; font-size: 18px; display: none;" id="closeMenu">✕</span>
+        </div>
+        <ul class="sidebar-menu">
+            <li onclick="location.href='dashboard.html'">Tableau de Bord & Dons</li>
+            <li onclick="location.href='streaming.html'">Mini TV & Studio Direct</li>
+            <li onclick="location.href='news.html'">News Studio</li>
+            <li onclick="location.href='admin-notifications.html'">Studio de Notifications</li>
+            <li onclick="location.href='admin-partenariats.html'">💼 Partenariats & Investissements</li>
+            <li onclick="location.href='messages.html'">Messages & Support</li>
+            <li onclick="location.href='avis.html'">Commentaires & Avis</li>
+            <li onclick="location.href='emplois.html'">Offres d'Emploi</li>
+            <li onclick="localStorage.clear(); location.href='login.html'" style="color:#ef4444; margin-top:30px;">Déconnexion</li>
+        </ul>
+    </aside>
+
+    <main>
+        <header>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+                <h2>Gestion Partenariats & Investissements</h2>
+            </div>
+            <span style="font-size: 11px; color: var(--green); white-space: nowrap;">🟢 Actif</span>
+        </header>
+
+        <div class="admin-container">
+            <div class="section-card">
+                <h3>Demandes de Partenariat</h3>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Réf.</th>
+                                <th>Demandeur</th>
+                                <th>Type</th>
+                                <th>Canal</th>
+                                <th>Contact</th>
+                                <th>Statut / Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="partenariatsBody">
+                            <tr><td colspan="6" style="text-align: center;">Chargement...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="section-card">
+                <h3>Dossiers d'Investissement (15% / an)</h3>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Réf.</th>
+                                <th>Investisseur</th>
+                                <th>Secteur</th>
+                                <th>Canal</th>
+                                <th>Contact</th>
+                                <th>Statut / Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="investissementsBody">
+                            <tr><td colspan="6" style="text-align: center;">Chargement...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="modal-overlay" id="modalReply">
+        <div class="modal-box">
+            <h3 id="modalTitle">Répondre & Confirmer</h3>
+            <div class="channel-info" id="channelNotice">Analyse du canal...</div>
+            <textarea id="modalText"></textarea>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeModal()">Annuler</button>
+                <button class="btn-reply" id="btnSubmitReply" onclick="sendReplyAndRedirect()">Valider & Envoyer</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let currentTarget = { id: null, type: null, nom: '', email: '', telephone: '', canal: '' };
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('active');
+        }
+
+        function detectChannel(email, telephone) {
+            const hasEmail = email && email.includes('@');
+            const cleanPhone = (telephone || '').replace(/[^0-9]/g, '');
+            const hasPhone = cleanPhone.length >= 8;
+
+            if (hasPhone) return { canal: 'whatsapp', val: cleanPhone };
+            if (hasEmail) return { canal: 'gmail', val: email };
+            return { canal: 'aucun', val: '' };
+        }
+
+        async function loadData() {
+            try {
+                // Partenariats
+                const resP = await fetch('/api/admin/partenariats');
+                const pList = await resP.json();
+                document.getElementById('partenariatsBody').innerHTML = pList.map(p => {
+                    const ch = detectChannel(p.email, p.telephone);
+                    const canalBadge = ch.canal === 'whatsapp' 
+                        ? '<span class="badge channel-wa">WhatsApp</span>' 
+                        : ch.canal === 'gmail' 
+                        ? '<span class="badge channel-gmail">Gmail</span>' 
+                        : '<span class="badge">Inconnu</span>';
+
+                    const safeEmail = (p.email || '').replace(/'/g, "\\'");
+                    const safePhone = (p.telephone || '').replace(/'/g, "\\'");
+                    const safeNom = (p.nom || '').replace(/'/g, "\\'");
+
+                    const actionBtn = p.statut === 'confirme_et_repondu' 
+                        ? '<span class="badge green">Confirmé & Répondu</span>' 
+                        : `<button class="btn-reply" onclick="openReplyModal(${p.id}, 'partenariat', '${safeNom}', '${safeEmail}', '${safePhone}')">Répondre</button>`;
+
+                    return `
+                        <tr>
+                            <td>#PART-${p.id}</td>
+                            <td><strong>${p.nom}</strong></td>
+                            <td><span class="badge">${p.type_partenaire}</span></td>
+                            <td>${canalBadge}</td>
+                            <td>${p.telephone || p.email || 'N/A'}</td>
+                            <td>${actionBtn}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+                // Investissements
+                const resI = await fetch('/api/admin/investissements');
+                const iList = await resI.json();
+                document.getElementById('investissementsBody').innerHTML = iList.map(i => {
+                    const ch = detectChannel(i.email, i.telephone);
+                    const canalBadge = ch.canal === 'whatsapp' 
+                        ? '<span class="badge channel-wa">WhatsApp</span>' 
+                        : ch.canal === 'gmail' 
+                        ? '<span class="badge channel-gmail">Gmail</span>' 
+                        : '<span class="badge">Inconnu</span>';
+
+                    const safeEmail = (i.email || '').replace(/'/g, "\\'");
+                    const safePhone = (i.telephone || '').replace(/'/g, "\\'");
+                    const safeNom = (i.nom || '').replace(/'/g, "\\'");
+
+                    const actionBtn = i.statut === 'confirme_et_repondu' 
+                        ? '<span class="badge green">Confirmé & Répondu</span>' 
+                        : `<button class="btn-reply" onclick="openReplyModal(${i.id}, 'investissement', '${safeNom}', '${safeEmail}', '${safePhone}')">Répondre</button>`;
+
+                    return `
+                        <tr>
+                            <td>#INV-${i.id}</td>
+                            <td><strong>${i.nom}</strong></td>
+                            <td>${i.secteur}</td>
+                            <td>${canalBadge}</td>
+                            <td>${i.telephone || i.email || 'N/A'}</td>
+                            <td>${actionBtn}</td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (err) {
+                console.error("Erreur chargement", err);
+            }
+        }
+
+        function openReplyModal(id, type, nom, email, telephone) {
+            const ch = detectChannel(email, telephone);
+            currentTarget = { id, type, nom, email, telephone, canal: ch.canal };
+
+            document.getElementById('modalTitle').innerText = `Réponse pour ${nom} (#${type.toUpperCase()}-${id})`;
+            
+            const notice = document.getElementById('channelNotice');
+            const btnSubmit = document.getElementById('btnSubmitReply');
+
+            if (ch.canal === 'whatsapp') {
+                notice.style.color = 'var(--whatsapp)';
+                notice.innerText = `📱 Canal : WhatsApp (${ch.val}). Redirection automatique vers WhatsApp.`;
+                btnSubmit.style.background = 'var(--whatsapp)';
+                btnSubmit.style.color = '#fff';
+                btnSubmit.innerText = 'Valider & Ouvrir WhatsApp';
+            } else if (ch.canal === 'gmail') {
+                notice.style.color = 'var(--gmail)';
+                notice.innerText = `✉️ Canal : Email (${ch.val}). Redirection automatique vers Gmail.`;
+                btnSubmit.style.background = 'var(--gmail)';
+                btnSubmit.style.color = '#fff';
+                btnSubmit.innerText = 'Valider & Ouvrir Gmail';
+            } else {
+                notice.style.color = 'var(--text-muted)';
+                notice.innerText = `⚠️ Aucun contact valide détecté en base.`;
+                btnSubmit.style.background = 'var(--secondary)';
+                btnSubmit.style.color = '#000';
+                btnSubmit.innerText = 'Valider en Base';
+            }
+
+            const defaultMessage = `Bonjour ${nom},\n\nNous accusons bonne réception de votre dossier de ${type} (#${type.toUpperCase()}-${id}) auprès de FAFHEVD.\n\nVotre dossier a été examiné et est officiellement VALIDÉ par notre direction.\n\nCordialement,\nLa Direction FAFHEVD - Bukavu, RDC`;
+            
+            document.getElementById('modalText').value = defaultMessage;
+            document.getElementById('modalReply').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('modalReply').style.display = 'none';
+        }
+
+        async function sendReplyAndRedirect() {
+            const reponse = document.getElementById('modalText').value;
+            if (!reponse) return alert("Veuillez saisir un message.");
+
+            try {
+                const res = await fetch('/api/admin/repondre-dossier', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: currentTarget.id,
+                        type: currentTarget.type,
+                        reponse_admin: reponse
+                    })
+                });
+
+                if (res.ok) {
+                    closeModal();
+                    loadData();
+
+                    if (currentTarget.canal === 'whatsapp') {
+                        const cleanPhone = currentTarget.telephone.replace(/[^0-9]/g, '');
+                        const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(reponse)}`;
+                        window.open(waUrl, '_blank');
+                    } else if (currentTarget.canal === 'gmail') {
+                        const subject = encodeURIComponent(`Confirmation de votre dossier ${currentTarget.type} - FAFHEVD`);
+                        const body = encodeURIComponent(reponse);
+                        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${currentTarget.email}&su=${subject}&body=${body}`;
+                        window.open(gmailUrl, '_blank');
+                    } else {
+                        alert("Confirmation enregistrée avec succès en base de données.");
+                    }
+                } else {
+                    alert("Erreur lors de l'enregistrement.");
+                }
+            } catch (err) {
+                alert("Erreur réseau.");
+            }
+        }
+
+        window.onload = loadData;
+    </script>
+</body>
+</html>

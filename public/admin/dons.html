@@ -2,34 +2,71 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Campagnes de Dons - FAFHEVD</title>
     <style>
-        :root { --secondary: #f0b90b; --bg: #0b0e11; --card: #1e2329; --text: #eaecef; }
+        :root { --secondary: #f0b90b; --bg: #0b0e11; --card: #1e2329; --text: #eaecef; --text-muted: #848e9c; --border: #2b313a; }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
-        body { background: var(--bg); color: var(--text); display: flex; height: 100vh; }
-        aside { width: 260px; background: #161a1e; border-right: 1px solid #2b313a; display: flex; flex-direction: column; }
-        .sidebar-header { padding: 20px; font-weight: bold; color: var(--secondary); background: var(--card); border-bottom: 1px solid #2b313a; }
-        .sidebar-menu { list-style: none; padding: 15px 0; }
-        .sidebar-menu li { padding: 12px 20px; cursor: pointer; color: #848e9c; font-size: 14px; }
-        .sidebar-menu li:hover, .sidebar-menu li.active { background: #2b313a; color: var(--secondary); }
-        main { flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto; }
-        header { background: var(--card); padding: 15px 30px; border-bottom: 1px solid #2b313a; }
-        .content { padding: 25px; }
+        body { background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
+        
+        /* SIDEBAR DE NAVIGATION */
+        aside { 
+            width: 260px; background: #161a1e; border-right: 1px solid var(--border); 
+            display: flex; flex-direction: column; flex-shrink: 0; height: 100vh; position: relative; z-index: 100;
+            transition: transform 0.3s ease;
+        }
+        .sidebar-header { padding: 20px; font-weight: bold; color: var(--secondary); background: var(--card); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+        .sidebar-menu { list-style: none; padding: 15px 0; overflow-y: auto; flex-grow: 1; }
+        .sidebar-menu li { padding: 12px 20px; cursor: pointer; color: var(--text-muted); font-size: 14px; transition: 0.2s; }
+        .sidebar-menu li:hover, .sidebar-menu li.active { background: var(--border); color: var(--secondary); }
+        
+        main { flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto; height: 100vh; }
+        
+        header { 
+            background: var(--card); padding: 15px 20px; border-bottom: 1px solid var(--border); 
+            display: flex; align-items: center; gap: 15px; 
+        }
+        .menu-toggle { background: none; border: none; color: white; font-size: 22px; cursor: pointer; display: none; }
+        header h2 { font-size: 16px; color: white; }
+
+        .content { padding: 20px; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .card { background: var(--card); padding: 25px; border-radius: 8px; border: 1px solid #2b313a; margin-bottom: 20px; }
-        .card h3 { color: var(--secondary); margin-bottom: 15px; }
+        
+        .card { background: var(--card); padding: 20px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+        .card h3 { color: var(--secondary); margin-bottom: 15px; font-size: 16px; }
+        
         .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; font-size: 13px; color: #848e9c; margin-bottom: 5px; }
-        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 11px; background: #0b0e11; border: 1px solid #2b313a; color: white; border-radius: 6px; }
-        .btn { background: var(--secondary); color: #0b0e11; border: none; padding: 12px; width: 100%; border-radius: 6px; font-weight: bold; cursor: pointer; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        table th, table td { padding: 12px; text-align: left; border-bottom: 1px solid #2b313a; font-size: 13px; }
-        table th { background: #161a1e; color: #848e9c; }
+        .form-group label { display: block; font-size: 12.5px; color: var(--text-muted); margin-bottom: 5px; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 11px; background: #0b0e11; border: 1px solid var(--border); color: white; border-radius: 6px; font-size: 13.5px; }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color: var(--secondary); outline: none; }
+        
+        .btn { background: var(--secondary); color: #0b0e11; border: none; padding: 12px; width: 100%; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13.5px; transition: opacity 0.2s; }
+        .btn:hover { opacity: 0.9; }
+
+        .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; min-width: 400px; }
+        table th, table td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); font-size: 13px; }
+        table th { background: #161a1e; color: var(--text-muted); }
+        table td { color: #fff; }
+
+        /* --- MEDIA QUERIES (RESPONSIVE) --- */
+        @media (max-width: 900px) {
+            .grid-2 { grid-template-columns: 1fr; }
+            aside { 
+                position: fixed; left: -260px; top: 0; bottom: 0; 
+                transition: transform 0.3s ease; box-shadow: 5px 0 15px rgba(0,0,0,0.5);
+            }
+            aside.mobile-open { transform: translateX(260px); }
+            .menu-toggle { display: block; }
+        }
     </style>
 </head>
 <body>
-    <aside>
-        <div class="sidebar-header">⚡ FAFHEVD Admin</div>
+    <aside id="sidebar">
+        <div class="sidebar-header">
+            <span>⚡ FAFHEVD Admin</span>
+            <button class="menu-toggle" onclick="toggleSidebar()" style="font-size:18px;">✕</button>
+        </div>
         <ul class="sidebar-menu">
             <li onclick="location.href='dashboard.html'">📊 Tableau de Bord & Dons</li>
             <li onclick="location.href='streaming.html'">🎥 Mini TV & Studio Direct</li>
@@ -40,15 +77,26 @@
             <li onclick="localStorage.clear(); location.href='login.html'" style="color:#ef4444; margin-top:30px;">🚪 Déconnexion</li>
         </ul>
     </aside>
+
     <main>
-        <header><h2>Gestion des Campagnes de Collecte de Dons</h2></header>
+        <header>
+            <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+            <h2>Gestion des Campagnes de Collecte de Dons</h2>
+        </header>
+
         <div class="content">
             <div class="grid-2">
                 <div class="card">
                     <h3>Créer une Campagne de Don</h3>
                     <form id="campagne-form">
-                        <div class="form-group"><label>Titre de la Campagne</label><input type="text" id="camp-titre" required placeholder="Ex: Panzi Lumière & Sécurité"></div>
-                        <div class="form-group"><label>Objectif Financier ($)</label><input type="number" id="camp-obj" required placeholder="Ex: 5000"></div>
+                        <div class="form-group">
+                            <label>Titre de la Campagne</label>
+                            <input type="text" id="camp-titre" required placeholder="Ex: Panzi Lumière & Sécurité">
+                        </div>
+                        <div class="form-group">
+                            <label>Objectif Financier ($)</label>
+                            <input type="number" id="camp-obj" required placeholder="Ex: 5000">
+                        </div>
                         <div class="form-group">
                             <label>Moyens de Paiement Acceptés</label>
                             <select id="camp-paiement">
@@ -57,21 +105,40 @@
                                 <option value="Virement Bancaire / Carte">Virement Bancaire / Carte</option>
                             </select>
                         </div>
-                        <div class="form-group"><label>Description</label><textarea id="camp-desc" rows="3" required placeholder="Détails du projet humanitaire..."></textarea></div>
+                        <div class="form-group">
+                            <label>Description</label>
+                            <textarea id="camp-desc" rows="3" required placeholder="Détails du projet humanitaire..."></textarea>
+                        </div>
                         <button type="submit" class="btn">Publier la Campagne</button>
                     </form>
                 </div>
+
                 <div class="card">
                     <h3>Campagnes Actives & Statistiques</h3>
-                    <table>
-                        <thead><tr><th>Titre</th><th>Objectif</th><th>Paiements</th></tr></thead>
-                        <tbody id="camp-table"></tbody>
-                    </table>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Titre</th>
+                                    <th>Objectif</th>
+                                    <th>Paiements</th>
+                                </tr>
+                            </thead>
+                            <tbody id="camp-table">
+                                <tr><td colspan="3" style="text-align: center; color: var(--text-muted);">Chargement...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
     </main>
+
     <script>
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('mobile-open');
+        }
+
         document.getElementById('campagne-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const payload = {
@@ -86,10 +153,20 @@
         });
 
         async function loadCampagnes() {
-            const res = await fetch('/api/campagnes');
-            const data = await res.json();
-            document.getElementById('camp-table').innerHTML = data.map(c => `<tr><td><b>${c.titre}</b><br><small>${c.description}</small></td><td><b>$${c.objectif}</b></td><td><small>${c.moyen_paiement}</small></td></tr>`).join('');
+            try {
+                const res = await fetch('/api/campagnes');
+                const data = await res.json();
+                const tbody = document.getElementById('camp-table');
+                if(!data || data.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--text-muted);">Aucune campagne active.</td></tr>`;
+                    return;
+                }
+                tbody.innerHTML = data.map(c => `<tr><td><b>${c.titre}</b><br><small>${c.description}</small></td><td><b>$${c.objectif}</b></td><td><small>${c.moyen_paiement}</small></td></tr>`).join('');
+            } catch(e) {
+                console.error("Erreur chargement campagnes", e);
+            }
         }
+        
         loadCampagnes();
     </script>
 </body>

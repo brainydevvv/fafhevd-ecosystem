@@ -2,33 +2,66 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Modération des Avis - FAFHEVD</title>
     <style>
-        :root { --secondary: #f0b90b; --bg: #0b0e11; --card: #1e2329; --text: #eaecef; --text-muted: #848e9c; }
+        :root { --secondary: #f0b90b; --bg: #0b0e11; --card: #1e2329; --text: #eaecef; --text-muted: #848e9c; --border: #2b313a; }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
-        body { background: var(--bg); color: var(--text); display: flex; height: 100vh; }
-        aside { width: 260px; background: #161a1e; border-right: 1px solid #2b313a; display: flex; flex-direction: column; }
-        .sidebar-header { padding: 20px; font-weight: bold; color: var(--secondary); background: var(--card); border-bottom: 1px solid #2b313a; }
-        .sidebar-menu { list-style: none; padding: 15px 0; }
-        .sidebar-menu li { padding: 12px 20px; cursor: pointer; color: var(--text-muted); font-size: 14px; }
-        .sidebar-menu li:hover, .sidebar-menu li.active { background: #2b313a; color: var(--secondary); }
-        main { flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto; }
-        header { background: var(--card); padding: 15px 30px; border-bottom: 1px solid #2b313a; }
-        .content { padding: 25px; }
-        .card { background: var(--card); padding: 25px; border-radius: 8px; border: 1px solid #2b313a; }
-        .card h3 { color: var(--secondary); margin-bottom: 15px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        table th, table td { padding: 12px; text-align: left; border-bottom: 1px solid #2b313a; font-size: 13px; }
+        body { background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
+        
+        /* SIDEBAR DE NAVIGATION */
+        aside { 
+            width: 260px; background: #161a1e; border-right: 1px solid var(--border); 
+            display: flex; flex-direction: column; flex-shrink: 0; height: 100vh; position: relative; z-index: 100;
+            transition: transform 0.3s ease;
+        }
+        .sidebar-header { padding: 20px; font-weight: bold; color: var(--secondary); background: var(--card); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+        .sidebar-menu { list-style: none; padding: 15px 0; overflow-y: auto; flex-grow: 1; }
+        .sidebar-menu li { padding: 12px 20px; cursor: pointer; color: var(--text-muted); font-size: 14px; transition: 0.2s; }
+        .sidebar-menu li:hover, .sidebar-menu li.active { background: var(--border); color: var(--secondary); }
+        
+        main { flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto; height: 100vh; }
+        
+        header { 
+            background: var(--card); padding: 15px 20px; border-bottom: 1px solid var(--border); 
+            display: flex; align-items: center; gap: 15px; 
+        }
+        .menu-toggle { background: none; border: none; color: white; font-size: 22px; cursor: pointer; display: none; }
+        header h2 { font-size: 16px; color: white; }
+
+        .content { padding: 20px; }
+        .card { background: var(--card); padding: 20px; border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+        .card h3 { color: var(--secondary); margin-bottom: 15px; font-size: 16px; }
+
+        .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; min-width: 500px; }
+        table th, table td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); font-size: 13px; }
         table th { background: #161a1e; color: var(--text-muted); }
+        table td { color: #fff; }
+
         .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
         .badge.approuve { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
         .badge.pending { background: rgba(234, 179, 8, 0.2); color: #eab308; }
-        .btn-action { background: #22c55e; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+        .btn-action { background: #22c55e; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }
+        .btn-action:hover { opacity: 0.9; }
+
+        /* --- MEDIA QUERIES (RESPONSIVE) --- */
+        @media (max-width: 900px) {
+            aside { 
+                position: fixed; left: -260px; top: 0; bottom: 0; 
+                transition: transform 0.3s ease; box-shadow: 5px 0 15px rgba(0,0,0,0.5);
+            }
+            aside.mobile-open { transform: translateX(260px); }
+            .menu-toggle { display: block; }
+        }
     </style>
 </head>
 <body>
-    <aside>
-        <div class="sidebar-header">⚡ FAFHEVD Admin</div>
+    <aside id="sidebar">
+        <div class="sidebar-header">
+            <span>⚡ FAFHEVD Admin</span>
+            <button class="menu-toggle" onclick="toggleSidebar()" style="font-size:18px;">✕</button>
+        </div>
         <ul class="sidebar-menu">
             <li onclick="location.href='dashboard.html'">📊 Tableau de Bord & Dons</li>
             <li onclick="location.href='streaming.html'">🎥 Mini TV & Studio Direct</li>
@@ -39,36 +72,71 @@
             <li onclick="localStorage.clear(); location.href='login.html'" style="color:#ef4444; margin-top:30px;">🚪 Déconnexion</li>
         </ul>
     </aside>
+
     <main>
-        <header><h2>Modération des Commentaires & Avis</h2></header>
+        <header>
+            <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+            <h2>Modération des Commentaires & Avis</h2>
+        </header>
+
         <div class="content">
             <div class="card">
                 <h3>Avis de la Communauté</h3>
-                <table>
-                    <thead><tr><th>Auteur</th><th>Contenu</th><th>Note</th><th>Statut</th><th>Action</th></tr></thead>
-                    <tbody id="avis-table"></tbody>
-                </table>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Auteur</th>
+                                <th>Contenu</th>
+                                <th>Note</th>
+                                <th>Statut</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="avis-table">
+                            <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Chargement des avis...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </main>
+
     <script>
-        async function loadAvis() {
-            const res = await fetch('/api/commentaires');
-            const data = await res.json();
-            document.getElementById('avis-table').innerHTML = data.map(c => `
-                <tr>
-                    <td><b>${c.auteur}</b></td>
-                    <td>${c.contenu}</td>
-                    <td>${c.note || '-'}/5</td>
-                    <td><span class="badge ${c.statut === 'approuve' ? 'approuve' : 'pending'}">${c.statut || 'pending'}</span></td>
-                    <td><button class="btn-action" onclick="approuver(${c.id})">Approuver</button></td>
-                </tr>
-            `).join('');
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('mobile-open');
         }
+
+        async function loadAvis() {
+            try {
+                const res = await fetch('/api/commentaires');
+                const data = await res.json();
+                const tbody = document.getElementById('avis-table');
+                
+                if (!data || data.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Aucun avis en attente.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = data.map(c => `
+                    <tr>
+                        <td><b>${c.auteur}</b></td>
+                        <td>${c.contenu}</td>
+                        <td>${c.note || '-'}/5</td>
+                        <td><span class="badge ${c.statut === 'approuve' ? 'approuve' : 'pending'}">${c.statut || 'pending'}</span></td>
+                        <td><button class="btn-action" onclick="approuver(${c.id})">Approuver</button></td>
+                    </tr>
+                `).join('');
+            } catch(e) {
+                console.error("Erreur de chargement des avis", e);
+            }
+        }
+
         async function approuver(id) {
             await fetch('/api/commentaires/statut', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id, statut: 'approuve' }) });
             loadAvis();
         }
+
         loadAvis();
     </script>
 </body>

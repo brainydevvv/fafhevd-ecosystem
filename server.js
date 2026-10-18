@@ -251,6 +251,331 @@ app.get('/api/tv/status', (req, res) => {
     });
 });
 
+// --- ROUTES DU STUDIO DE NOTIFICATIONS & ANALYTICS ---
+
+// 1. Récupérer les statistiques et l'historique des campagnes du studio
+app.get('/api/admin/studio/analytics', async (req, res) => {
+    try {
+        // Récupérer le nombre total d'abonnés
+        db.all("SELECT COUNT(*) as total FROM abonnes", [], async (err, subRows) => {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+            const totalSubscribers = subRows[0] ? subRows[0].total : 0;
+
+            // Récupérer les campagnes enregistrées (ou simuler si la table n'existe pas encore)
+            db.all("SELECT * FROM campaigns ORDER BY id DESC", [], (err, campaigns) => {
+                // Si la table campaigns n'est pas encore créée, on renvoie une liste vide par défaut
+                const campList = (err || !campaigns) ? [] : campaigns;
+                const scheduledCount = campList.filter(c => c.status === 'scheduled').length;
+                const lastReached = campList.length > 0 ? campList[0].reachedCount : 0;
+
+                res.json({
+                    totalSubscribers,
+                    lastReachedCount: lastReached,
+                    scheduledCount,
+                    campaigns: campList
+                });
+            });
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// 2. Diffuser ou programmer une campagne de notification
+app.post('/api/admin/studio/broadcast', async (req, res) => {
+    const { title, message, mode, scheduleTime, target } = req.body;
+
+    if (!title || !message) {
+        return res.status(400).json({ error: "Le titre et le message sont requis." });
+    }
+
+    // Vérifier ou créer la table campaigns si elle n'existe pas
+    db.run(`CREATE TABLE IF NOT EXISTS campaigns (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT,
+        message TEXT,
+        target TEXT,
+        status TEXT,
+        scheduleTime TEXT,
+        reachedCount INTEGER,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`, async (err) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+
+        // Compter les abonnés ciblés
+        db.get("SELECT COUNT(*) as count FROM abonnes", [], (err, row) => {
+            const reachedCount = row ? row.count : 0;
+            const status = (mode === 'schedule') ? 'scheduled' : 'broadcasted';
+
+            // Insérer la campagne dans SQLite
+            const query = `INSERT INTO campaigns (title, message, target, status, scheduleTime, reachedCount) VALUES (?, ?, ?, ?, ?, ?)`;
+            db.run(query, [title, message, target, status, scheduleTime || '', reachedCount], function(err) {
+                if (err) {
+                    return res.status(500).json({ error: err.message });
+                }
+
+                // Si Socket.io est configuré globalement, émettre l'événement en temps réel
+                if (typeof io !== 'undefined') {
+                    io.emit('notification_received', { title, message, target });
+                }
+
+                res.json({
+                    success: true,
+                    message: "Campagne traitée avec succès",
+                    reachedCount,
+                    campaignId: this.lastID
+                });
+            });
+        });
+    });
+});
+
+
+
+// --- ROUTES DE RÉCUPÉRATION ET CONFIRMATION DES NOTIFICATIONS ---
+
+// 1. Récupérer les notifications actives/diffusées pour les utilisateurs
+app.get('/api/notifications', async (req, res) => {
+    try {
+        db.all("SELECT * FROM campaigns WHERE status = 'broadcasted' ORDER BY id DESC", [], (err, rows) => {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+            res.json(rows || []);
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// 2. Confirmer la réception d'une notification en temps réel (Incrémente les vues/portée)
+app.post('/api/notifications/confirmer', async (req, res) => {
+    const { campaignId } = req.body;
+
+    if (!campaignId) {
+        return res.status(400).json({ error: "L'ID de la campagne est requis." });
+    }
+
+    // Incrémenter le compteur reachedCount dans la base de données SQLite
+    db.run("UPDATE campaigns SET reachedCount = reachedCount + 1 WHERE id = ?", [campaignId], function(err) {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+
+        // Informer instantanément l'admin via Socket.io que les stats ont changé
+        if (typeof io !== 'undefined') {
+            io.emit('notification_stat_updated', { campaignId });
+        }
+
+        res.json({ 
+            success: true, 
+            message: "Réception confirmée et prise en compte en temps réel." 
+        });
+    });
+});
+
+
+app.post('/api/user/notifications/read-all', async (req, res) => {
+    try {
+        db.run("UPDATE campaigns SET isRead = 1", [], (err) => {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({ success: true, message: "Toutes les notifications ont été marquées comme lues." });
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});// =========================================================================
+// 1. ROUTE : DEMANDE DE PARTENARIAT (Physique, Moral / Institutionnel, Financier)
+// =========================================================================
+app.post('/api/partenariats', async (req, res) => {
+    const { nom, organisation, type_partenaire, domaine_action, email, telephone, message } = req.body;
+
+    if (!nom || !type_partenaire || (!email && !telephone) || !message) {
+        return res.status(400).json({ 
+            error: "Veuillez remplir les champs requis (Nom, Type de partenaire, Contact et Message)." 
+        });
+    }
+
+    db.run(`CREATE TABLE IF NOT EXISTS partenariats (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nom TEXT NOT NULL,
+        organisation TEXT,
+        type_partenaire TEXT NOT NULL, -- 'physique', 'moral', 'financier'
+        domaine_action TEXT,
+        email TEXT,
+        telephone TEXT,
+        message TEXT NOT NULL,
+        statut TEXT DEFAULT 'en_attente',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`, (err) => {
+        if (err) return res.status(500).json({ error: err.message });
+
+        const sql = `INSERT INTO partenariats (nom, organisation, type_partenaire, domaine_action, email, telephone, message) VALUES (?, ?, ?, ?, ?, ?, ?)`;
+        db.run(sql, [nom, organisation || 'Individuel', type_partenaire, domaine_action || 'Général', email || '', telephone || '', message], function(err) {
+            if (err) return res.status(500).json({ error: err.message });
+
+            const idDossier = this.lastID;
+            if (typeof io !== 'undefined') {
+                io.emit('new_partnership_submitted', { id: idDossier, nom, type_partenaire, organisation });
+            }
+
+            res.status(201).json({
+                success: true,
+                message: `Demande de partenariat #${idDossier} soumise avec succès ! Nos équipes vous recontacteront.`,
+                reference: `PART-${idDossier}`
+            });
+        });
+    });
+});
+
+
+// =========================================================================
+// 2. ROUTE : DOSSIER D'INVESTISSEMENT (Intérêt annuel garanti à 15%)
+// =========================================================================
+app.post('/api/investissements', async (req, res) => {
+    const { nom, email, telephone, secteur, montant, duree_annees, projet_specifique } = req.body;
+
+    const montantNum = parseFloat(montant);
+    const dureeNum = parseInt(duree_annees) || 1;
+
+    if (!nom || (!email && !telephone) || !secteur || isNaN(montantNum) || montantNum <= 0) {
+        return res.status(400).json({ 
+            error: "Veuillez fournir un nom, un contact valide, le secteur d'investissement et un montant valide." 
+        });
+    }
+
+    // Calcul officiel des intérêts (15% par an)
+    const tauxAnnuel = 0.15;
+    const profitAnnuel = montantNum * tauxAnnuel;
+    const profitTotal = profitAnnuel * dureeNum;
+    const capitalTotalAEcheance = montantNum + profitTotal;
+
+    db.run(`CREATE TABLE IF NOT EXISTS investissements (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nom TEXT NOT NULL,
+        email TEXT,
+        telephone TEXT,
+        secteur TEXT NOT NULL, -- 'technologie', 'finance', 'education', 'ressources', etc.
+        montant REAL NOT NULL,
+        duree_annees INTEGER DEFAULT 1,
+        profit_annuel REAL NOT NULL,
+        profit_total REAL NOT NULL,
+        montant_final REAL NOT NULL,
+        projet_specifique TEXT,
+        statut TEXT DEFAULT 'en_etude',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`, (err) => {
+        if (err) return res.status(500).json({ error: err.message });
+
+        const sql = `INSERT INTO investissements 
+            (nom, email, telephone, secteur, montant, duree_annees, profit_annuel, profit_total, montant_final, projet_specifique) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+        const params = [nom, email || '', telephone || '', secteur, montantNum, dureeNum, profitAnnuel, profitTotal, capitalTotalAEcheance, projet_specifique || ''];
+
+        db.run(sql, params, function(err) {
+            if (err) return res.status(500).json({ error: err.message });
+
+            const idInvest = this.lastID;
+            if (typeof io !== 'undefined') {
+                io.emit('new_investment_submitted', { id: idInvest, nom, secteur, montant: montantNum, profitAnnuel });
+            }
+
+            res.status(201).json({
+                success: true,
+                message: `Dossier d'investissement #${idInvest} souscrit avec succès !`,
+                details: {
+                    reference: `INV-${idInvest}`,
+                    montantInvesti: `$${montantNum.toFixed(2)}`,
+                    profitAnnuelEstime: `$${profitAnnuel.toFixed(2)}`,
+                    profitTotalEstime: `$${profitTotal.toFixed(2)}`,
+                    totalAEcheance: `$${capitalTotalAEcheance.toFixed(2)}`
+                }
+            });
+        });
+    });
+});
+
+
+// --- ROUTE ADMIN : RÉCUPÉRER TOUS LES INVESTISSEMENTS ---
+app.get('/api/admin/investissements', async (req, res) => {
+    db.all("SELECT * FROM investissements ORDER BY id DESC", [], (err, rows) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.json(rows || []);
+    });
+});
+
+// 1. Route pour l'administrateur : Récupérer toutes les demandes de partenariat
+app.get('/api/admin/partenariats', async (req, res) => {
+    db.all("SELECT * FROM partenariats ORDER BY id DESC", [], (err, rows) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.json(rows || []);
+    });
+});
+
+// 2. Route publique (optionnelle) : Récupérer uniquement les partenaires approuvés ou validés
+app.get('/api/partenariats/public', async (req, res) => {
+    db.all("SELECT id, nom, organisation, type_partenaire, domaine_action FROM partenariats WHERE statut = 'approuve' ORDER BY id DESC", [], (err, rows) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.json(rows || []);
+    });
+});
+
+
+
+// --- ROUTE POUR CONFIRMER LA RÉCEPTION ET RÉPONDRE À UNE DEMANDE ---
+// --- ROUTE POUR CONFIRMER LA RÉCEPTION ET RÉPONDRE À UNE DEMANDE ---
+app.post('/api/admin/repondre-dossier', (req, res) => {
+    const { id, type, reponse_admin } = req.body; 
+
+    if (!id || !type || !reponse_admin) {
+        return res.status(400).json({ error: "L'identifiant, le type et le message de réponse sont requis." });
+    }
+
+    const table = type === 'partenariat' ? 'partenariats' : 'investissements';
+
+    // 1. S'assurer que la colonne 'reponse_admin' existe dans la table (évite l'erreur SQLITE_ERROR)
+    db.run(`ALTER TABLE ${table} ADD COLUMN reponse_admin TEXT`, (altErr) => {
+        // Si la colonne existe déjà, SQLite renvoie une erreur qu'on peut ignorer en toute sécurité
+        
+        // 2. Mettre à jour le statut et la réponse
+        const sql = `UPDATE ${table} SET statut = 'confirme_et_repondu', reponse_admin = ? WHERE id = ?`;
+
+        db.run(sql, [reponse_admin, id], function(err) {
+            if (err) {
+                console.error("Erreur mise à jour dossier:", err);
+                return res.status(500).json({ error: "Erreur lors de la confirmation du dossier." });
+            }
+
+            // 3. Transmettre le signal en temps réel via Socket.io
+            if (typeof io !== 'undefined') {
+                io.emit('dossier_repondu', {
+                    type,
+                    id,
+                    reponse: reponse_admin,
+                    updatedAt: new Date()
+                });
+            }
+
+            res.json({
+                success: true,
+                message: `Accusé de réception et réponse enregistrés avec succès pour le dossier #${type.toUpperCase()}-${id} !`,
+                dossierId: id
+            });
+        });
+    });
+});
+
 // ================= MESSAGES & SUPPORT ISOLÉS PAR CONTACT =================
 app.get('/api/messages', (req, res) => {
     db.all(`SELECT * FROM messages ORDER BY created_at ASC`, [], (err, rows) => {

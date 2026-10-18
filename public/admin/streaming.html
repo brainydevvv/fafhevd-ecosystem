@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Studio de Streaming & Mini TV Professionnel - FAFHEVD</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
@@ -9,20 +10,29 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
         
-        aside { width: 260px; background: #161a1e; border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
-        .sidebar-header { padding: 20px; font-weight: bold; color: var(--secondary); background: var(--card); border-bottom: 1px solid var(--border); font-size: 16px; display: flex; align-items: center; gap: 10px; }
-        .sidebar-menu { list-style: none; padding: 15px 0; overflow-y: auto; }
+        aside { 
+            width: 260px; background: #161a1e; border-right: 1px solid var(--border); 
+            display: flex; flex-direction: column; flex-shrink: 0; height: 100vh; position: relative; z-index: 100;
+            transition: transform 0.3s ease;
+        }
+        .sidebar-header { padding: 20px; font-weight: bold; color: var(--secondary); background: var(--card); border-bottom: 1px solid var(--border); font-size: 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .sidebar-menu { list-style: none; padding: 15px 0; overflow-y: auto; flex-grow: 1; }
         .sidebar-menu li { padding: 12px 20px; cursor: pointer; color: var(--text-muted); font-size: 14px; transition: all 0.2s; }
         .sidebar-menu li:hover, .sidebar-menu li.active { background: var(--border); color: var(--secondary); }
         
-        main { flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto; }
-        header { background: var(--card); padding: 15px 30px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-        header h2 { font-size: 20px; color: #fff; }
+        main { flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto; height: 100vh; }
+        header { 
+            background: var(--card); padding: 15px 20px; border-bottom: 1px solid var(--border); 
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; 
+        }
+        .header-left { display: flex; align-items: center; gap: 15px; }
+        .menu-toggle { background: none; border: none; color: white; font-size: 22px; cursor: pointer; display: none; }
+        header h2 { font-size: 18px; color: #fff; }
         
         .socket-status { font-size: 12px; padding: 4px 10px; border-radius: 12px; background: rgba(231, 76, 60, 0.2); color: #e74c3c; font-weight: 600; }
         .socket-status.connected { background: rgba(46, 204, 113, 0.2); color: #2ecc71; }
 
-        .content { padding: 25px; display: flex; flex-direction: column; gap: 20px; }
+        .content { padding: 20px; display: flex; flex-direction: column; gap: 20px; }
         
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
         .stat-card { background: var(--card); border: 1px solid var(--border); padding: 18px; border-radius: 10px; }
@@ -30,12 +40,11 @@
         .stat-value { font-size: 24px; font-weight: bold; color: var(--secondary); margin-top: 5px; }
 
         .grid-2 { display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; }
-        @media(max-width: 1024px) { .grid-2 { grid-template-columns: 1fr; } }
 
-        .card { background: var(--card); padding: 25px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+        .card { background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
         .card h3 { color: var(--secondary); margin-bottom: 15px; font-size: 16px; display: flex; align-items: center; gap: 8px; }
         
-        .video-studio-box { background: #000; border-radius: 8px; overflow: hidden; margin-bottom: 15px; height: 220px; display: flex; align-items: center; justify-content: center; position: relative; border: 2px solid var(--border); }
+        .video-studio-box { background: #000; border-radius: 8px; overflow: hidden; margin-bottom: 15px; height: 200px; display: flex; align-items: center; justify-content: center; position: relative; border: 2px solid var(--border); }
         .live-tag { position: absolute; top: 12px; left: 12px; background: #ef4444; color: #fff; font-size: 10px; font-weight: bold; padding: 4px 8px; border-radius: 4px; display: none; align-items: center; gap: 5px; text-transform: uppercase; }
         .live-dot { width: 6px; height: 6px; background: #fff; border-radius: 50%; animation: pulse 1s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
@@ -49,7 +58,8 @@
         .btn:hover { opacity: 0.9; }
         .btn-danger { background: #ef4444; color: white; }
 
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; min-width: 500px; }
         table th, table td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); font-size: 13px; }
         table th { background: #161a1e; color: var(--text-muted); font-weight: 600; }
         table td { color: #fff; }
@@ -58,11 +68,28 @@
         .badge.live { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
         .badge.prog { background: rgba(240, 185, 11, 0.2); color: var(--secondary); }
         .badge.offline { background: rgba(132, 142, 156, 0.2); color: var(--text-muted); }
+
+        /* --- MEDIA QUERIES (RESPONSIVE) --- */
+        @media(max-width: 1024px) { 
+            .grid-2 { grid-template-columns: 1fr; } 
+        }
+
+        @media(max-width: 900px) {
+            aside { 
+                position: fixed; left: -260px; top: 0; bottom: 0; 
+                transition: transform 0.3s ease; box-shadow: 5px 0 15px rgba(0,0,0,0.5);
+            }
+            aside.mobile-open { transform: translateX(260px); }
+            .menu-toggle { display: block; }
+        }
     </style>
 </head>
 <body>
-    <aside>
-        <div class="sidebar-header">⚡ FAFHEVD Studio</div>
+    <aside id="sidebar">
+        <div class="sidebar-header">
+            <span>⚡ FAFHEVD Studio</span>
+            <button class="menu-toggle" onclick="toggleSidebar()" style="font-size:18px;">✕</button>
+        </div>
         <ul class="sidebar-menu">
             <li onclick="location.href='dashboard.html'">📊 Tableau de Bord & Dons</li>
             <li class="active">🎥 Mini TV & Studio Direct</li>
@@ -77,7 +104,10 @@
 
     <main>
         <header>
-            <h2>Studio de Streaming & Pilotage Mini TV</h2>
+            <div class="header-left">
+                <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+                <h2>Studio de Streaming & Pilotage Mini TV</h2>
+            </div>
             <div id="socketStatus" class="socket-status">Connexion en cours...</div>
         </header>
 
@@ -99,7 +129,7 @@
             </div>
 
             <div class="grid-2">
-                <!-- Studio Caméra Direct (Webcam Live & Signal Accueil) -->
+                <!-- Studio Caméra Direct -->
                 <div class="card">
                     <h3>🔴 Studio Caméra Direct (Webcam Live)</h3>
                     <div class="video-studio-box">
@@ -107,9 +137,9 @@
                         <video id="webcam-preview" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover;"></video>
                         <p id="camPlaceholder" style="color: var(--text-muted); font-size: 13px; position: absolute;">Caméra inactive</p>
                     </div>
-                    <div style="display: flex; gap: 10px;">
-                        <button class="btn" onclick="startWebcam()" style="flex:1;">Activer la Caméra & Diffuser</button>
-                        <button class="btn btn-danger" onclick="stopWebcam()" style="flex:1;">Arrêter le Direct</button>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn" onclick="startWebcam()" style="flex:1; min-width: 130px;">Activer Caméra</button>
+                        <button class="btn btn-danger" onclick="stopWebcam()" style="flex:1; min-width: 130px;">Arrêter Direct</button>
                     </div>
                 </div>
 
@@ -119,7 +149,7 @@
                     <form id="media-form">
                         <div class="form-group">
                             <label>Titre de l'émission *</label>
-                            <input type="text" id="media-title" required placeholder="Ex: Journal Local Bukavu / Direct Spécial">
+                            <input type="text" id="media-title" required placeholder="Ex: Journal Local Bukavu">
                         </div>
                         <div class="form-group">
                             <label>Type de Média</label>
@@ -140,7 +170,7 @@
                                 <option value="hors-ligne">⚪ Hors Ligne (En attente)</option>
                             </select>
                         </div>
-                        <button type="submit" class="btn" style="width:100%;">Publier & Mettre à jour le Signal</button>
+                        <button type="submit" class="btn" style="width:100%;">Publier & Mettre à jour</button>
                     </form>
                 </div>
             </div>
@@ -148,7 +178,7 @@
             <!-- Grille TV & Historique des flux -->
             <div class="card">
                 <h3>📋 Grille TV & Historique des Flux Actifs</h3>
-                <div style="overflow-x: auto;">
+                <div class="table-responsive">
                     <table>
                         <thead>
                             <tr>
@@ -170,10 +200,13 @@
     </main>
 
     <script>
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('mobile-open');
+        }
+
         const socket = io();
         let webcamStream = null;
 
-        // Gestion Socket.io
         socket.on('connect', () => {
             const st = document.getElementById('socketStatus');
             st.innerText = "Connecté en temps réel";
@@ -187,7 +220,6 @@
             st.className = "socket-status";
         });
 
-        // Activer la Webcam et basculer en direct sur l'accueil
         async function startWebcam() {
             try {
                 webcamStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
@@ -196,7 +228,6 @@
                 document.getElementById('camPlaceholder').style.display = 'none';
                 document.getElementById('liveTagIndicator').style.display = 'flex';
 
-                // Enregistrement direct dans la base de données
                 const payload = {
                     titre: "Direct Studio Web (Caméra Live)",
                     description: "Diffusion en direct depuis le studio web FAFHEVD.",
@@ -213,14 +244,13 @@
 
                 if(res.ok) {
                     loadMediaData();
-                    alert("Caméra activée ! Le direct est maintenant en ligne sur la plateforme.");
+                    alert("Caméra activée ! Le direct est en ligne.");
                 }
             } catch(e) { 
                 alert("Erreur d'accès à la caméra : " + e.message); 
             }
         }
 
-        // Arrêter la Webcam et mettre hors-ligne
         async function stopWebcam() {
             if(webcamStream) { 
                 webcamStream.getTracks().forEach(t => t.stop()); 
@@ -243,11 +273,10 @@
                 });
 
                 loadMediaData();
-                alert("Le direct a été arrêté et mis hors-ligne.");
+                alert("Le direct a été arrêté.");
             }
         }
 
-        // Soumission du formulaire de média / flux TV
         document.getElementById('media-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const payload = {
@@ -269,14 +298,13 @@
                     loadMediaData();
                     document.getElementById('media-form').reset();
                 } else {
-                    alert("Erreur : " + (data.error || "Échec de l'enregistrement"));
+                    alert("Erreur : " + (data.error || "Échec"));
                 }
             } catch(err) {
                 alert("Impossible de joindre le serveur.");
             }
         });
 
-        // Charger les flux multimédias et mettre à jour les statistiques
         async function loadMediaData() {
             try {
                 const res = await fetch('/api/multimedia');
@@ -311,7 +339,7 @@
                             <td><b>${m.titre}</b></td>
                             <td>${m.type_media.toUpperCase()}</td>
                             <td><span class="badge ${badgeClass}">${m.statut}</span></td>
-                            <td><a href="${m.url_media}" target="_blank" style="color:var(--secondary); text-decoration:none;">${m.url_media ? 'Ouvrir le lien ↗' : 'N/A'}</a></td>
+                            <td><a href="${m.url_media}" target="_blank" style="color:var(--secondary); text-decoration:none;">${m.url_media ? 'Ouvrir ↗' : 'N/A'}</a></td>
                             <td><button class="btn" style="padding: 5px 10px; font-size: 11px;" onclick="navigator.clipboard.writeText('${m.url_media}'); alert('Lien copié !');">Copier</button></td>
                         </tr>
                     `;

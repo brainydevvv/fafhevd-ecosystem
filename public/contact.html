@@ -1,38 +1,329 @@
 <!DOCTYPE html>
-<html lang="fr" class="no-js">
+<html lang="fr">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Contact – FAFHEVD</title>
-<meta name="description" content="Contactez FAFHEVD à Bukavu : téléphones, e-mail, adresse et formulaire.">
-<meta name="theme-color" content="#4b1d6b">
-<link rel="manifest" href="/manifest.webmanifest">
-<link rel="icon" href="/icons/icon-192.png">
-<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
-<link rel="stylesheet" href="/style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Devenir Partenaire & Investisseur - FAFHEVD</title>
+    <style>
+        :root { --secondary: #f0b90b; --bg: #0b0e11; --card: #1e2329; --text: #eaecef; --text-muted: #848e9c; --border: #2b313a; --green: #2ecc71; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: var(--bg); color: var(--text); display: flex; flex-direction: column; min-height: 100vh; overflow-x: hidden; }
+
+        /* NAVBAR & MENU RESPONSIVE HOMOGÈNE */
+        nav { background: var(--card); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 1000; }
+        .nav-brand { color: var(--secondary); font-weight: bold; text-decoration: none; font-size: 18px; }
+        .nav-links-container { display: flex; gap: 20px; list-style: none; align-items: center; }
+        .nav-links-container a { color: var(--text-muted); text-decoration: none; font-size: 14px; transition: color 0.2s; }
+        .nav-links-container a:hover, .nav-links-container a.active { color: var(--secondary); }
+
+        .pro-menu-toggle { display: none; background: #2b313a; color: var(--secondary); border: 1px solid var(--border); padding: 8px 10px; border-radius: 6px; cursor: pointer; align-items: center; justify-content: center; }
+        .pro-menu-toggle svg { width: 22px; height: 22px; fill: currentColor; }
+
+        .container { max-width: 1100px; margin: 40px auto; padding: 0 20px; width: 100%; flex: 1; }
+
+        /* HERO & ONGLETS */
+        .hero { text-align: center; margin-bottom: 30px; }
+        .hero h1 { font-size: 28px; color: #fff; margin-bottom: 8px; font-weight: 800; }
+        .hero h1 span { color: var(--secondary); }
+        .hero p { color: var(--text-muted); font-size: 14.5px; max-width: 700px; margin: 0 auto; line-height: 1.6; }
+
+        .tabs-header { display: flex; justify-content: center; gap: 15px; margin-bottom: 30px; flex-wrap: wrap; }
+        .tab-btn { background: var(--card); border: 1px solid var(--border); color: var(--text-muted); padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; transition: all 0.2s; }
+        .tab-btn.active { background: var(--secondary); color: #000; border-color: var(--secondary); }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: grid; grid-template-columns: 1fr 1.1fr; gap: 25px; align-items: start; }
+
+        /* BANNIÈRE IMAGE & MESSAGE FORT */
+        .card { background: var(--card); padding: 25px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 8px 30px rgba(0,0,0,0.4); display: flex; flex-direction: column; gap: 15px; }
+        
+        .visual-banner { width: 100%; height: 200px; border-radius: 8px; object-fit: cover; border: 1px solid var(--border); }
+        .card h2 { color: var(--secondary); font-size: 18px; font-weight: 700; }
+        
+        .strong-message { 
+            background: rgba(240, 185, 11, 0.08); border-left: 4px solid var(--secondary); 
+            padding: 14px; border-radius: 0 8px 8px 0; font-size: 14px; line-height: 1.6; color: #fff; font-style: italic; 
+        }
+
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 12.5px; color: var(--text-muted); margin-bottom: 5px; font-weight: 500; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 11px; background: var(--bg); border: 1px solid var(--border); color: white; border-radius: 6px; font-size: 13.5px; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--secondary); outline: none; }
+
+        .btn-action { background: var(--secondary); color: #000; border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; font-size: 14px; margin-top: 10px; transition: opacity 0.2s; }
+        .btn-action:hover { opacity: 0.9; }
+        
+        /* SIMULATEUR */
+        .calculator-box { background: rgba(240, 185, 11, 0.05); border: 1px dashed var(--secondary); border-radius: 8px; padding: 18px; margin: 10px 0; }
+        .calc-title { color: var(--secondary); font-size: 13px; font-weight: bold; margin-bottom: 10px; text-transform: uppercase; }
+        .calc-row { display: flex; justify-content: space-between; font-size: 13.5px; margin-bottom: 8px; border-bottom: 1px dotted var(--border); padding-bottom: 6px; }
+        .calc-row.total { border-bottom: none; font-weight: bold; color: var(--green); font-size: 15px; margin-top: 10px; }
+
+        .status-msg { margin-top: 15px; padding: 12px; border-radius: 6px; font-size: 13px; text-align: center; display: none; }
+
+        footer { background: var(--card); padding: 25px; text-align: center; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 13px; margin-top: auto; }
+
+        @media (max-width: 900px) {
+            .tab-content.active { grid-template-columns: 1fr; }
+            .nav-links-container { position: absolute; top: 100%; left: 0; width: 100%; background: var(--card); flex-direction: column; align-items: flex-start; padding: 20px; gap: 15px; border-bottom: 1px solid var(--border); display: none; }
+            .nav-links-container.mobile-active { display: flex; }
+            .pro-menu-toggle { display: flex; }
+        }
+    </style>
 </head>
 <body>
-<main id="contenu">
-<div class="page-hero"><div class="wrap intro"><h1>Contact</h1><p>Pour tout besoin, contactez-nous.</p></div></div>
-<section><div class="wrap cols">
-  <div class="infos rv">
-    <h2>Nos coordonnées</h2>
-    <p><strong>Adresse</strong><br>Avenue Kibombo n°15, commune d'Ibanda, ville de Bukavu, province du Sud-Kivu<br>Réf. : Premier Dos d'Âne ISP/Bukavu<br>
-      <a href="https://www.google.com/maps/search/?api=1&query=Avenue+Kibombo+15+Ibanda+Bukavu" target="_blank" rel="noopener">Voir sur la carte</a></p>
-    <p><strong>Téléphones</strong><br><a href="tel:+243838719901">+243 838 719 901</a><br><a href="tel:+243815373164">+243 815 373 164</a><br><a href="tel:+243974431815">+243 974 431 815</a><br><a href="tel:+243997557980">+243 997 557 980</a></p>
-    <p><strong>E-mail</strong><br><a href="mailto:fafhevd2015@gmail.com">fafhevd2015@gmail.com</a></p>
-  </div>
-  <form id="form-contact" class="rv">
-    <h2>Écrivez-nous</h2>
-    <label for="nom">Votre nom</label><input id="nom" name="nom" required maxlength="100" autocomplete="name">
-    <label for="contact">Téléphone ou e-mail</label><input id="contact" name="contact" required maxlength="100">
-    <label for="message">Message</label><textarea id="message" name="message" required maxlength="2000"></textarea>
-    <p><button class="btn" type="submit">Envoyer le message</button></p>
-    <div id="retour" class="msg" role="status"></div>
-  </form>
-</div></section>
-</main>
-<script src="/layout.js"></script>
-<script src="/pages.js"></script>
+
+    <!-- BARRE DE NAVIGATION RESPONSIVE -->
+    <nav>
+        <a href="index.html" class="nav-brand">FAFHEVD</a>
+        <button class="pro-menu-toggle" id="proMenuToggle">
+            <svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+        </button>
+        <ul class="nav-links-container" id="navLinksContainer">
+            <li><a href="index.html">Accueil</a></li>
+            <li><a href="apropos.html">À propos</a></li>
+            <li><a href="domaines.html">Domaines & Investissements</a></li>
+            <li><a href="dons.html">Partenariat & Dons</a></li>
+            <li><a href="avis.html">Avis & Témoignages</a></li>
+            <li><a href="contact.html" class="active">Partenaires & Investisseurs</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <div class="hero">
+            <h1>Portail <span>Partenaires & Investisseurs</span></h1>
+            <p>Bâtissons ensemble l'avenir socio-économique et technologique de notre région avec impact et pérennité.</p>
+        </div>
+
+        <div class="tabs-header">
+            <button class="tab-btn active" onclick="switchTab('partenariat')">🤝 Espace Partenariat</button>
+            <button class="tab-btn" onclick="switchTab('investissement')">📈 Espace Investisseurs (15% / an)</button>
+        </div>
+
+        <!-- ================= ONGLET 1 : PARTENARIAT ================= -->
+        <div id="tab-partenariat" class="tab-content active">
+            <!-- Colonne Visuelle & Message Fort -->
+            <div class="card">
+                <h2>🤝 Unir nos forces pour transformer l'avenir</h2>
+                <img src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80" alt="Partenariat Stratégique" class="visual-banner">
+                <div class="strong-message">
+                    "Seul on va plus vite, ensemble on va plus loin. Le développement durable de Bukavu repose sur la synergie de nos co-acteurs, qu'ils soient physiques, moraux ou institutionnels."
+                </div>
+                <p style="font-size: 13.5px; color: var(--text-muted); line-height: 1.6;">
+                    En devenant partenaire de l'écosystème FAFHEVD, vous participez activement à des programmes concrets à fort impact social, technologique et environnemental.
+                </p>
+            </div>
+
+            <!-- Formulaire de Partenariat -->
+            <div class="card">
+                <h2>Formulaire de Demande de Partenariat</h2>
+                <form onsubmit="submitPartenariat(event)">
+                    <div class="form-group">
+                        <label>Nom complet ou Raison sociale *</label>
+                        <input type="text" id="partNom" required placeholder="Ex: Jean Dupont ou Institution XY">
+                    </div>
+                    <div class="form-group">
+                        <label>Type de Partenariat *</label>
+                        <select id="partType">
+                            <option value="physique">Personne Physique (Individuel / Expert de terrain)</option>
+                            <option value="moral">Personne Morale (Entreprise / ONG / Institution)</option>
+                            <option value="financier">Partenaire Financier / Mécénat</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Domaine d'Action Cible</label>
+                        <select id="partDomaine">
+                            <option value="Technologie & Innovation">Technologie & Innovation (Logiciels, PWA, Réseaux)</option>
+                            <option value="Finance & Inclusion">Finance & Économie Locale</option>
+                            <option value="Éducation & Formation">Éducation & Académie pour la Jeunesse</option>
+                            <option value="Environnement & Ressources">Environnement, Biogaz & Recyclage</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Téléphone ou Email de contact *</label>
+                        <input type="text" id="partContact" required placeholder="+243... ou nom@exemple.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Message / Vision de collaboration *</label>
+                        <textarea id="partMessage" required rows="4" placeholder="Présentez votre vision et vos attentes..."></textarea>
+                    </div>
+                    <button type="submit" class="btn-action" id="btnPart">Soumettre le dossier</button>
+                    <div id="partStatus" class="status-msg"></div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ================= ONGLET 2 : INVESTISSEMENT ================= -->
+        <div id="tab-investissement" class="tab-content">
+            <!-- Colonne Visuelle & Message Fort -->
+            <div class="card">
+                <h2>📊 Investissement intelligent à rendement garanti</h2>
+                <img src="https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&w=800&q=80" alt="Investissement Stratégique" class="visual-banner">
+                <div class="strong-message">
+                    "Donnez de la valeur à votre capital tout en stimulant l'économie réelle. FAFHEVD vous offre un placement sécurisé avec un rendement fixe exceptionnel de 15% par an."
+                </div>
+                <p style="font-size: 13.5px; color: var(--text-muted); line-height: 1.6;">
+                    Nos secteurs d'investissement allient technologie de pointe, infrastructures durables et création de valeur tangible pour un avenir prospère.
+                </p>
+            </div>
+
+            <!-- Formulaire d'Investissement & Simulateur -->
+            <div class="card">
+                <h2>Souscription & Simulateur (15% / An)</h2>
+                <form onsubmit="submitInvestissement(event)">
+                    <div class="form-group">
+                        <label>Nom de l'investisseur *</label>
+                        <input type="text" id="invNom" required placeholder="Ex: Dr. Marc Buhendwa">
+                    </div>
+                    <div class="form-group">
+                        <label>Secteur d'Investissement Cible *</label>
+                        <select id="invSecteur">
+                            <option value="Technologie & Innovation">💻 Technologie & Innovation (PWA, Mesh, Systèmes)</option>
+                            <option value="Finance & Économie locale">💰 Finance & Économie Communautaire</option>
+                            <option value="Éducation & Formations">🎓 Éducation & Académies Numériques</option>
+                            <option value="Ressources & Écologie">♻️ Ressources, Énergie Verte & Recyclage</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Montant à placer ($ USD) *</label>
+                        <input type="number" id="invMontant" min="100" value="1000" required oninput="calculateProfit()">
+                    </div>
+                    <div class="form-group">
+                        <label>Durée de l'investissement (Années)</label>
+                        <select id="invDuree" onchange="calculateProfit()">
+                            <option value="1">1 An</option>
+                            <option value="2">2 Ans</option>
+                            <option value="3">3 Ans</option>
+                            <option value="5">5 Ans</option>
+                        </select>
+                    </div>
+
+                    <!-- CALCUL EN TEMPS RÉEL DES PROFITS -->
+                    <div class="calculator-box">
+                        <div class="calc-title">📊 Simulation de Rentabilité (Taux fixe : 15%)</div>
+                        <div class="calc-row"><span>Profit Annuel estimé :</span> <strong id="calcProfitAnnuel" style="color: var(--secondary);">$150.00</strong></div>
+                        <div class="calc-row"><span>Profit Total cumulé :</span> <strong id="calcProfitTotal">$150.00</strong></div>
+                        <div class="calc-row total"><span>Capital Final à l'échéance :</span> <strong id="calcTotalFinal">$1,150.00</strong></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Téléphone ou Email de contact *</label>
+                        <input type="text" id="invContact" required placeholder="+243... ou email@exemple.com">
+                    </div>
+
+                    <button type="submit" class="btn-action" id="btnInv">Valider l'Investissement</button>
+                    <div id="invStatus" class="status-msg"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <footer>&copy; 2026 FAFHEVD - Tous droits réservés</footer>
+
+    <script>
+        // Gestion du menu burger mobile
+        document.getElementById('proMenuToggle').addEventListener('click', () => {
+            document.getElementById('navLinksContainer').classList.toggle('mobile-active');
+        });
+
+        // Gestion des onglets
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            if (tabName === 'partenariat') {
+                document.querySelectorAll('.tab-btn')[0].classList.add('active');
+                document.getElementById('tab-partenariat').classList.add('active');
+            } else {
+                document.querySelectorAll('.tab-btn')[1].classList.add('active');
+                document.getElementById('tab-investissement').classList.add('active');
+                calculateProfit();
+            }
+        }
+
+        // Calculateur de profit en temps réel (15% / an)
+        function calculateProfit() {
+            const montant = parseFloat(document.getElementById('invMontant').value) || 0;
+            const duree = parseInt(document.getElementById('invDuree').value) || 1;
+            
+            const profitAnnuel = montant * 0.15;
+            const profitTotal = profitAnnuel * duree;
+            const totalFinal = montant + profitTotal;
+
+            document.getElementById('calcProfitAnnuel').innerText = `$${profitAnnuel.toFixed(2)}`;
+            document.getElementById('calcProfitTotal').innerText = `$${profitTotal.toFixed(2)}`;
+            document.getElementById('calcTotalFinal').innerText = `$${totalFinal.toFixed(2)}`;
+        }
+
+        async function submitPartenariat(e) {
+            e.preventDefault();
+            const status = document.getElementById('partStatus');
+            status.style.display = 'block'; status.innerText = "Traitement en cours...";
+
+            const contact = document.getElementById('partContact').value;
+            const payload = {
+                nom: document.getElementById('partNom').value,
+                type_partenaire: document.getElementById('partType').value,
+                domaine_action: document.getElementById('partDomaine').value,
+                email: contact.includes('@') ? contact : '',
+                telephone: !contact.includes('@') ? contact : '',
+                message: document.getElementById('partMessage').value
+            };
+
+            try {
+                const res = await fetch('/api/partenariats', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    status.style.background = "rgba(46, 204, 113, 0.15)"; status.style.color = "#2ecc71";
+                    status.innerText = data.message;
+                } else {
+                    status.style.background = "rgba(231, 76, 60, 0.15)"; status.style.color = "#e74c3c";
+                    status.innerText = data.error;
+                }
+            } catch(err) {
+                status.style.background = "rgba(231, 76, 60, 0.15)"; status.style.color = "#e74c3c";
+                status.innerText = "Erreur de connexion au serveur.";
+            }
+        }
+
+        async function submitInvestissement(e) {
+            e.preventDefault();
+            const status = document.getElementById('invStatus');
+            status.style.display = 'block'; status.innerText = "Souscription en cours...";
+
+            const contact = document.getElementById('invContact').value;
+            const payload = {
+                nom: document.getElementById('invNom').value,
+                secteur: document.getElementById('invSecteur').value,
+                montant: document.getElementById('invMontant').value,
+                duree_annees: document.getElementById('invDuree').value,
+                email: contact.includes('@') ? contact : '',
+                telephone: !contact.includes('@') ? contact : ''
+            };
+
+            try {
+                const res = await fetch('/api/investissements', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    status.style.background = "rgba(46, 204, 113, 0.15)"; status.style.color = "#2ecc71";
+                    status.innerText = `${data.message} Total estimé à l'échéance : ${data.details.totalAEcheance}`;
+                } else {
+                    status.style.background = "rgba(231, 76, 60, 0.15)"; status.style.color = "#e74c3c";
+                    status.innerText = data.error;
+                }
+            } catch(err) {
+                status.style.background = "rgba(231, 76, 60, 0.15)"; status.style.color = "#e74c3c";
+                status.innerText = "Erreur de connexion au serveur.";
+            }
+        }
+    </script>
 </body>
 </html>

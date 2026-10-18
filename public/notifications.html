@@ -3,45 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Notifications - Fefhevd</title>
+    <title>Notifications - FAFHEVD</title>
+    <!-- Intégration de Socket.io client pour recevoir les alertes en direct -->
+    <script src="/socket.io/socket.io.js"></script>
     <style>
         :root { --secondary: #f0b90b; --bg: #0b0e11; --card: #1e2329; --text: #eaecef; --text-muted: #848e9c; --border: #2b313a; }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: var(--bg); color: var(--text); display: flex; flex-direction: column; min-height: 100vh; }
 
-        nav { background: var(--card); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
+        nav { background: var(--card); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 10px; }
         .nav-brand { color: var(--secondary); font-weight: bold; text-decoration: none; font-size: 18px; }
-        .nav-links { display: flex; gap: 20px; list-style: none; }
+        .nav-links { display: flex; gap: 15px; list-style: none; flex-wrap: wrap; }
         .nav-links a { color: var(--text-muted); text-decoration: none; font-size: 14px; transition: color 0.2s; }
         .nav-links a:hover { color: var(--secondary); }
 
-        .container { max-width: 800px; margin: 40px auto; padding: 0 20px; width: 100%; flex: 1; }
-        .header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
-        h1 { color: #fff; font-size: 24px; font-weight: 700; }
+        .container { max-width: 800px; margin: 20px auto; padding: 0 15px; width: 100%; flex: 1; }
+        .header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+        h1 { color: #fff; font-size: 20px; font-weight: 700; }
         
-        .btn-action { background: #2b313a; color: var(--text); border: 1px solid var(--border); padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all 0.2s; }
+        .btn-action { background: #2b313a; color: var(--text); border: 1px solid var(--border); padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all 0.2s; }
         .btn-action:hover { border-color: var(--secondary); color: var(--secondary); }
 
         .notif-list { display: flex; flex-direction: column; gap: 12px; }
-        .notif-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px; display: flex; gap: 15px; align-items: flex-start; transition: border-color 0.2s; position: relative; }
+        .notif-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 15px; display: flex; gap: 12px; align-items: flex-start; transition: border-color 0.2s; position: relative; }
         .notif-card.unread { border-left: 4px solid var(--secondary); background: rgba(240, 185, 11, 0.03); }
         
-        .notif-icon { background: rgba(240, 185, 11, 0.1); color: var(--secondary); width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .notif-icon svg { width: 18px; height: 18px; fill: currentColor; }
+        .notif-icon { background: rgba(240, 185, 11, 0.1); color: var(--secondary); width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .notif-icon svg { width: 16px; height: 16px; fill: currentColor; }
 
-        .notif-content { flex: 1; }
-        .notif-title { font-weight: 600; font-size: 15px; color: #fff; margin-bottom: 4px; }
-        .notif-text { font-size: 13.5px; color: var(--text-muted); line-height: 1.5; margin-bottom: 8px; }
-        .notif-time { font-size: 11.5px; color: #6c757d; }
+        .notif-content { flex: 1; word-break: break-word; min-width: 0; }
+        .notif-title { font-weight: 600; font-size: 14.5px; color: #fff; margin-bottom: 4px; }
+        .notif-text { font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-bottom: 6px; }
+        .notif-time { font-size: 11px; color: #6c757d; }
 
-        .empty-state { text-align: center; padding: 50px 20px; color: var(--text-muted); }
-        footer { background: var(--card); padding: 20px; text-align: center; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 13px; }
+        .empty-state { text-align: center; padding: 40px 15px; color: var(--text-muted); font-size: 13.5px; }
+        footer { background: var(--card); padding: 15px; text-align: center; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 12px; margin-top: auto; }
+
+        /* Media Queries pour smartphones très étroits */
+        @media (max-width: 480px) {
+            nav { padding: 12px 15px; justify-content: center; }
+            .nav-links { justify-content: center; width: 100%; gap: 15px; }
+            .header-flex { flex-direction: column; align-items: stretch; text-align: center; }
+            .btn-action { width: 100%; }
+        }
     </style>
 </head>
 <body>
 
     <nav>
-        <a href="index.html" class="nav-brand">Fefhevd</a>
+        <a href="index.html" class="nav-brand">FAFHEVD</a>
         <ul class="nav-links">
             <li><a href="index.html">Accueil</a></li>
             <li><a href="messages.html">Messages</a></li>
@@ -60,12 +70,20 @@
         </div>
     </div>
 
-    <footer>&copy; 2026 Fefhevd - Tous droits réservés</footer>
+    <footer>&copy; 2026 FAFHEVD - Tous droits réservés</footer>
 
     <script>
+        const socket = io();
+
+        // Écouter les nouvelles notifications diffusées en temps réel par l'administrateur
+        socket.on('notification_received', (data) => {
+            console.log("Nouvelle notification en direct :", data);
+            loadNotifications();
+        });
+
         async function loadNotifications() {
             try {
-                const res = await fetch('/api/user/notifications');
+                const res = await fetch('/api/notifications');
                 const notifications = await res.json();
                 const container = document.getElementById('notifListContainer');
 
@@ -74,20 +92,38 @@
                     return;
                 }
 
-                container.innerHTML = notifications.map(n => `
-                    <div class="notif-card ${n.isRead ? '' : 'unread'}">
-                        <div class="notif-icon">
-                            <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.68v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg>
+                container.innerHTML = notifications.map(n => {
+                    // Confirmer automatiquement la lecture/réception pour actualiser les stats de l'admin
+                    confirmReceipt(n.id);
+
+                    return `
+                        <div class="notif-card ${n.isRead ? '' : 'unread'}">
+                            <div class="notif-icon">
+                                <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.68v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg>
+                            </div>
+                            <div class="notif-content">
+                                <div class="notif-title">${n.title}</div>
+                                <div class="notif-text">${n.message}</div>
+                                <div class="notif-time">${n.created_at || 'Récemment'}</div>
+                            </div>
                         </div>
-                        <div class="notif-content">
-                            <div class="notif-title">${n.title}</div>
-                            <div class="notif-text">${n.message}</div>
-                            <div class="notif-time">${n.createdAt}</div>
-                        </div>
-                    </div>
-                `).join('');
+                    `;
+                }).join('');
             } catch (e) {
                 document.getElementById('notifListContainer').innerHTML = `<div class="empty-state">Erreur de chargement des notifications.</div>`;
+            }
+        }
+
+        // Envoyer la confirmation de réception au serveur pour alimenter les graphiques de l'admin
+        async function confirmReceipt(campaignId) {
+            try {
+                await fetch('/api/notifications/confirmer', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ campaignId })
+                });
+            } catch (err) {
+                console.error("Erreur de confirmation de lecture", err);
             }
         }
 

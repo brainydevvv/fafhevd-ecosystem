@@ -55,6 +55,18 @@
         }
         .icon-btn svg { width: 18px; height: 18px; fill: currentColor; }
         .icon-btn:hover { background: #3a414b; border-color: var(--secondary); color: var(--secondary); transform: translateY(-2px); }
+        
+        /* Animation d'alerte pour l'icône de notification */
+        .icon-btn.notify-animate {
+            animation: notifyPulse 0.8s ease infinite alternate;
+            border-color: var(--secondary);
+            color: var(--secondary);
+        }
+        @keyframes notifyPulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(240, 185, 11, 0.7); }
+            100% { transform: scale(1.1); box-shadow: 0 0 12px 4px rgba(240, 185, 11, 0.4); }
+        }
+
         .badge-count { position: absolute; top: -5px; right: -5px; background: #e74c3c; color: #fff; font-size: 9px; padding: 2px 5px; border-radius: 10px; font-weight: bold; display: none; }
 
         .welcome-subscriber { font-size: 12.5px; color: var(--secondary); background: rgba(240,185,11,0.1); padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(240,185,11,0.2); display: none; align-items: center; gap: 6px; }
@@ -217,7 +229,7 @@
                     <span class="badge-count" id="msgBadge">0</span>
                 </a>
                 
-                <a href="notifications.html" id="notifBtn" class="icon-btn" title="Notifications">
+                <a href="notifications.html" id="notifBtn" class="icon-btn" title="Notifications" onclick="clearNotifBadge(event)">
                     <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.68v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg>
                     <span class="badge-count" id="notifBadge">0</span>
                 </a>
@@ -420,6 +432,11 @@
                     badge.innerText = data.messagesCount;
                     badge.style.display = 'inline-block';
                 }
+                if (data.notificationsCount > 0) {
+                    const notifBadge = document.getElementById('notifBadge');
+                    notifBadge.innerText = data.notificationsCount;
+                    notifBadge.style.display = 'inline-block';
+                }
             } catch (e) {
                 console.error("Erreur compteurs", e);
             }
@@ -430,6 +447,29 @@
             badge.innerText = '0';
             badge.style.display = 'none';
         }
+
+        function clearNotifBadge(event) {
+            const notifBtn = document.getElementById('notifBtn');
+            const notifBadge = document.getElementById('notifBadge');
+            notifBadge.innerText = '0';
+            notifBadge.style.display = 'none';
+            notifBtn.classList.remove('notify-animate');
+        }
+
+        // --- GESTION EN TEMPS RÉEL DES NOTIFICATIONS (SOCKET.IO) ---
+        socket.on('notification_received', (data) => {
+            console.log("Nouvelle notification reçue :", data);
+            
+            // 1. Activer l'animation clignotante/rebond sur le bouton de notification
+            const notifBtn = document.getElementById('notifBtn');
+            notifBtn.classList.add('notify-animate');
+
+            // 2. Mettre à jour et afficher le badge numérique de notification
+            const notifBadge = document.getElementById('notifBadge');
+            let currentCount = parseInt(notifBadge.innerText) || 0;
+            notifBadge.innerText = currentCount + 1;
+            notifBadge.style.display = 'inline-block';
+        });
 
         /* CARROUSEL PRINCIPAL */
         let currentMainSlide = 0;
